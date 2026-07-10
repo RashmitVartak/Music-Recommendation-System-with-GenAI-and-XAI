@@ -1,6 +1,8 @@
 import streamlit as st
+
 from preprocessing import SpotifyPreprocessor
 from data_loader import SpotifyDataLoader
+from recommenders.content_based import ContentBasedRecommender
 
 #page configuration
 st.set_page_config(
@@ -23,6 +25,13 @@ processor = (
     )
 
 summary = processor.dataset_summary()
+
+recommender = (
+    ContentBasedRecommender(
+        processor.get_dataframe()
+    )
+    .build_similarity_matrix()
+)
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -52,3 +61,10 @@ st.dataframe(
     processor.correlation_matrix()
 )
 
+st.subheader("Testing Recommendation Engine")
+
+recommendations = recommender.recommend(
+    "Shape of You"
+)
+
+st.dataframe(recommendations)
