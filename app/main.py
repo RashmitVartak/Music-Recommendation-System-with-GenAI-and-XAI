@@ -26,7 +26,7 @@ st.sidebar.success("Phase 2 - Content-Based Recommendation")
 # Title
 # ----------------------------------------------------------
 
-st.title("🎵 Music Recommendation System with GenAI & XAI")
+st.title("Music Recommendation System with GenAI & XAI")
 st.write(
     "A modern Music Recommendation System using Content-Based Filtering, "
     "Collaborative Filtering, Explainable AI (XAI) and Generative AI."
@@ -68,10 +68,8 @@ st.markdown("---")
 # Content-Based Recommendation
 # ----------------------------------------------------------
 
-st.subheader("🎯 Content-Based Recommendation")
-
-st.markdown("---")
-
+st.subheader("Content-Based Recommendation")
+# st.markdown("---")
 # song = st.selectbox(
 #     "Select a song",
 #     sorted(songs["name"].unique())
@@ -83,9 +81,7 @@ st.markdown("---")
 #     max_value=20,
 #     value=10
 # )
-
-
-st.header("🎯 Find Similar Songs")
+st.markdown("Find Similar Songs")
 
 col1, col2 = st.columns([3,1])
 
@@ -112,37 +108,21 @@ if st.button("Recommend Songs"):
         #     use_container_width=True
         # )
 
-        st.markdown("## 🎵 Recommendations")
+        st.markdown("## Recommendations")
 
         for _, row in recommendations.iterrows():
 
             with st.container(border=True):
-
-                c1, c2 = st.columns([4,1])
+                c1, c2 = st.columns([2,1])
 
                 with c1:
-
                     st.subheader(row["name"])
-
-                    st.write(
-                        f"**Artist:** {row['artists']}"
-                    )
-
-                    st.write(
-                        f"**Year:** {row['year']}"
-                    )
+                    st.write(f"**Artist:** {row['artists']}")
+                    st.write(f"**Year:** {row['year']}")
 
                 with c2:
-
-                    st.metric(
-                        "Similarity",
-                        f"{row['Similarity Score']*100:.1f}%"
-                    )
-
-                    st.metric(
-                        "Popularity",
-                        row["popularity"]
-                    )
+                    st.metric("Similarity", f"{row['Similarity Score']*100:.1f}%")
+                    st.metric("Popularity", row["popularity"])
 
 st.markdown("---")
 
