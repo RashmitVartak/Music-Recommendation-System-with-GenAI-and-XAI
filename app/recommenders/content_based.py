@@ -1,35 +1,33 @@
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from app.utils import AUDIO_FEATURES
+from app.services.feature_service import FeatureService
+
 
 class ContentBasedRecommender:
 
     def __init__(self, df):
 
-        self.df = df.copy()
-        self.similarity_matrix = None
-    
-    def build_similarity_matrix(self):
-
-        self.similarity_matrix = cosine_similarity(
-            self.df[AUDIO_FEATURES]
+        self.df = df.reset_index(drop=True)
+        self.feature_service = FeatureService()
+        self.feature_matrix = (
+            self.feature_service.create_feature_matrix(self.df)
         )
 
-        return self
+    def available_songs(self):
+        return sorted(self.df["name"].unique())
 
     def get_song_index(self, song_name):
 
-        song = self.df[
-            self.df["name"].str.lower()
-            == song_name.lower()
+        matches = self.df[
+            self.df["name"].str.lower() == song_name.lower()
         ]
 
-        if song.empty:
+        if matches.empty:
             return None
 
-        return song.index[0]
-    
+        return matches.index[0]
+
     def recommend(self, song_name, n=10):
 
         index = self.get_song_index(song_name)
@@ -37,27 +35,29 @@ class ContentBasedRecommender:
         if index is None:
             return None
 
-        similarities = list(
-            enumerate(
-                self.similarity_matrix[index]
-            )
-        )
+        query_vector = self.feature_matrix[index].reshape(1, -1)
 
-        similarities = sorted(
-            similarities,
-            key=lambda x: x[1],
-            reverse=True
-        )
+        similarity_scores = cosine_similarity(
+            query_vector,
+            self.feature_matrix
+        ).flatten()
 
-        recommendations = similarities[1:n+1]
+        sorted_indices = similarity_scores.argsort()[::-1]
 
-        return self.df.iloc[
-            [i[0] for i in recommendations]
-        ][
+        sorted_indices = sorted_indices[1:n+1]
+
+        recommendations = (self.df.iloc[sorted_indices].copy())
+
+        recommendations["Similarity Score"] = (similarity_scores[sorted_indices])
+
+        recommendations["Similarity Score"] = (recommendations["Similarity Score"].round(3))
+
+        return recommendations[
             [
                 "name",
                 "artists",
                 "year",
-                "popularity"
+                "popularity",
+                "Similarity Score",
             ]
         ]
