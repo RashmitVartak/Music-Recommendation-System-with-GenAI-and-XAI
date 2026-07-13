@@ -5,6 +5,40 @@ from app.preprocessing import SpotifyPreprocessor
 from app.recommenders.content_based import ContentBasedRecommender
 from app.utils import format_number
 from app.recommenders.popularity import (PopularityRecommender)
+from app.recommenders.collaborative import (CollaborativeRecommender)
+
+#adding cache funtions
+@st.cache_resource
+def get_content_recommender(songs):
+    return ContentBasedRecommender(songs)
+
+
+@st.cache_resource
+def get_popularity_recommender(songs):
+    return PopularityRecommender(songs)
+
+
+@st.cache_resource
+def get_collaborative_recommender():
+    return CollaborativeRecommender(
+        triplets_path="datasets/triplets_file.csv",
+        song_data_path="datasets/song_data.csv"
+    )
+
+
+@st.cache_data
+def load_spotify_dataset():
+
+    loader = SpotifyDataLoader().load_data()
+
+    processor = (
+        SpotifyPreprocessor(loader.song_df)
+        .clean_data()
+        .prepare_audio_features()
+    )
+
+    return processor
+
 
 
 
@@ -27,22 +61,20 @@ st.write(
 )
 
 # Load Dataset
-loader = SpotifyDataLoader().load_data()
-
-processor = (
-    SpotifyPreprocessor(loader.song_df)
-    .clean_data()
-    .prepare_audio_features()
-)
+processor = load_spotify_dataset()
 
 songs = processor.get_dataframe()
+
 summary = processor.dataset_summary()
 
-# Initialize Recommendation Engine
-recommender = ContentBasedRecommender(songs)
+# Initialize content-based Recommendation 
+recommender = get_content_recommender(songs)
 
 #initialize Popularity Recommender
-popularity = PopularityRecommender(songs)
+popularity = get_popularity_recommender(songs)
+
+#initialize Collaborative Recommender
+collaborative = get_collaborative_recommender()
 
 
 # Dataset Statistics
@@ -58,10 +90,11 @@ col4.metric("⭐ Avg Popularity", summary["Average Popularity"])
 st.markdown("---")
 
 
-tab1, tab2 = st.tabs(
+tab1, tab2, tab3 = st.tabs(
     [
         "🎯 Content Based",
-        "🔥 Popular Songs"
+        "🔥 Popular",
+        "👥 Collaborative"
     ]
 )
 # ----------------------------------------------------------
@@ -89,12 +122,7 @@ with tab1:
 
         else:
 
-            st.success(f"Top {top_n} songs similar to **{song}**")
-
-            # st.dataframe(
-            #     recommendations,
-            #     use_container_width=True
-            # )
+            # st.success(f"Top {top_n} songs similar to **{song}**")
 
             st.markdown("## Recommendations")
 
@@ -133,6 +161,32 @@ with tab2:
             with c2:
                 st.metric("Popularity",row["popularity"])
 
+with tab3:
+
+    st.subheader("👥 Collaborative Recommendation")
+
+    song = st.selectbox("Choose a Song",collaborative.available_songs(),key="collab_song")
+    top_n = st.slider("Number of Recommendations",5,20,10,key="collab_slider")
+
+    if st.button("Recommend",key="collab_button"):
+        recommendations = collaborative.recommend(song,top_n)
+
+        if recommendations is None:
+            st.error("Song not found.")
+
+        else:
+            for _, row in recommendations.iterrows():
+                with st.container(border=True):
+                    c1, c2 = st.columns([4, 1])
+
+                    with c1:
+                        st.subheader(row["title"])
+                        st.write(f"**Artist:** {row['artist_name']}")
+                        st.write(f"**Year:** {row['year']}")
+
+                    with c2:
+                        st.metric("Similarity",f"{row['Similarity']*100:.1f}%")
+
 
 # Dataset Preview
 # st.subheader("🎼 Dataset Preview")
@@ -154,5 +208,24 @@ with tab2:
 # st.subheader("🧹 Missing Values")
 # st.dataframe(
 #     processor.missing_values(),
+#     use_container_width=True
+# )
+
+# st.markdown("---")
+# st.header("🧪 Collaborative Dataset Preview")
+
+# manager = (
+#     DataManager()
+#     .load_triplets("datasets/triplets_file.csv")
+#     .load_song_data("datasets/song_data.csv")
+#     .merge()
+# )
+
+# merged = manager.get_dataset()
+
+# st.write("Merged Dataset Shape:", merged.shape)
+
+# st.dataframe(
+#     merged.head(10),
 #     use_container_width=True
 # )
