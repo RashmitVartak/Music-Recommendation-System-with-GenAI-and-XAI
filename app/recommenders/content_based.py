@@ -43,21 +43,11 @@ class ContentBasedRecommender:
         ).flatten()
 
         sorted_indices = similarity_scores.argsort()[::-1]
-
         sorted_indices = sorted_indices[1:n+1]
-
         recommendations = (self.df.iloc[sorted_indices].copy())
-
         recommendations["Similarity Score"] = (similarity_scores[sorted_indices])
-
         recommendations["Similarity Score"] = (recommendations["Similarity Score"].round(3))
 
         return recommendations[
-            [
-                "name",
-                "artists",
-                "year",
-                "popularity",
-                "Similarity Score",
-            ]
+            ["name","artists","year","popularity","Similarity Score"]
         ]

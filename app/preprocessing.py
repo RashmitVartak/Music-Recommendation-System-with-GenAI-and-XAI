@@ -9,18 +9,14 @@ class SpotifyPreprocessor:
         self.df = df.copy()
 
     def clean_data(self):
-
         self.df.drop_duplicates(inplace=True)
         self.df.dropna(inplace=True)
 
         return self
 
     def prepare_audio_features(self):
-
         scaler = StandardScaler()
-        self.df[AUDIO_FEATURES] = scaler.fit_transform(
-            self.df[AUDIO_FEATURES]
-        )
+        self.df[AUDIO_FEATURES] = scaler.fit_transform(self.df[AUDIO_FEATURES])
 
         return self
     
@@ -37,17 +33,13 @@ class SpotifyPreprocessor:
         }
     
     def missing_values(self):
-
         return self.df.isnull().sum()
 
     def duplicate_count(self):
-
         return self.df.duplicated().sum()
 
     def correlation_matrix(self):
-
         return self.df[AUDIO_FEATURES].corr()
 
     def get_dataframe(self):
-
         return self.df

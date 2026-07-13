@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 
-
 class CollaborativeRecommender:
 
     def __init__(self,triplets_path, song_data_path):
@@ -55,22 +54,17 @@ class CollaborativeRecommender:
 
         # Only compare ONE song against all songs
         similarity_scores = cosine_similarity(self.sparse_matrix[idx],self.sparse_matrix).flatten()
-
         similar_indices = (similarity_scores.argsort()[::-1])
         similar_indices = similar_indices[1:n+1]
-
         similar_song_ids = (self.song_user_matrix.index[similar_indices])
 
         recommendations = (
             self.dataset[
                 self.dataset["song_id"]
-                .isin(similar_song_ids)
-            ]
-            .drop_duplicates("song_id")
+                .isin(similar_song_ids)].drop_duplicates("song_id")
         )
 
         recommendations["Similarity"] = (similarity_scores[similar_indices])
-
         recommendations["Similarity"] = (recommendations["Similarity"].round(3))
 
         return recommendations[

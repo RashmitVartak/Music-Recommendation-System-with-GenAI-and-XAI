@@ -115,19 +115,14 @@ with tab1:
     if st.button("Recommend Songs"):
 
         recommendations = recommender.recommend(song_name=song,n=top_n)
-
         if recommendations is None:
-
             st.error("Song not found.")
 
         else:
-
             # st.success(f"Top {top_n} songs similar to **{song}**")
-
             st.markdown("## Recommendations")
 
             for _, row in recommendations.iterrows():
-
                 with st.container(border=True):
                     c1, c2 = st.columns([2,1])
 

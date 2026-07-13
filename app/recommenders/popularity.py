@@ -11,10 +11,5 @@ class PopularityRecommender:
         )
 
         return recommendations[
-            [
-                "name",
-                "artists",
-                "year",
-                "popularity"
-            ]
+            ["name","artists","year","popularity"]
         ]
