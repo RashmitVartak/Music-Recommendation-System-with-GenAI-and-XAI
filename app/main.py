@@ -6,6 +6,7 @@ from app.recommenders.content_based import ContentBasedRecommender
 from app.utils import format_number
 from app.recommenders.popularity import (PopularityRecommender)
 from app.recommenders.collaborative import (CollaborativeRecommender)
+from app.recommenders.hybrid import HybridRecommender
 
 #adding cache funtions
 @st.cache_resource
@@ -67,15 +68,14 @@ songs = processor.get_dataframe()
 
 summary = processor.dataset_summary()
 
-# Initialize content-based Recommendation 
+# Initializing the recommenders 
 recommender = get_content_recommender(songs)
 
-#initialize Popularity Recommender
 popularity = get_popularity_recommender(songs)
 
-#initialize Collaborative Recommender
 collaborative = get_collaborative_recommender()
 
+hybrid = HybridRecommender(recommender,collaborative)
 
 # Dataset Statistics
 st.subheader("📊 Dataset Statistics")
@@ -90,11 +90,12 @@ col4.metric("⭐ Avg Popularity", summary["Average Popularity"])
 st.markdown("---")
 
 
-tab1, tab2, tab3 = st.tabs(
+tab1, tab2, tab3, tab4 = st.tabs(
     [
-        "🎯 Content Based",
+        "🎯 Content",
         "🔥 Popular",
-        "👥 Collaborative"
+        "👥 Collaborative",
+        "⭐ Hybrid"
     ]
 )
 # ----------------------------------------------------------
@@ -181,6 +182,46 @@ with tab3:
 
                     with c2:
                         st.metric("Similarity",f"{row['Similarity']*100:.1f}%")
+
+with tab4:
+
+    st.subheader("⭐ Hybrid Recommendation")
+
+    song = st.selectbox("Choose Song",recommender.available_songs(),key="hybrid_song")
+
+    top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
+    content_weight = st.slider("Content Weight",
+                               0.0,
+                               1.0,
+                               0.6,
+                               0.1
+                               )
+
+    collaborative_weight = 1 - content_weight
+    hybrid.content_weight = content_weight
+    hybrid.collaborative_weight = collaborative_weight
+
+    st.write(f"Content : {content_weight:.1f}")
+    st.write(f"Collaborative : {collaborative_weight:.1f}")
+
+    if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
+        
+        recommendations = hybrid.recommend(song,top_n)
+        if recommendations is None:
+            st.error("No recommendations found.")
+
+        else:
+            for _, row in recommendations.iterrows():
+                with st.container(border=True):
+                    c1, c2 = st.columns([4,1])
+
+                    with c1:
+                        st.subheader(row["name"])
+                        st.write(f"**Artist:** {row['artists']}")
+                        st.write(f"**Year:** {row['year']}")
+
+                    with c2:
+                        st.metric("Hybrid",f"{row['Hybrid Score']:.3f}")
 
 
 # Dataset Preview
