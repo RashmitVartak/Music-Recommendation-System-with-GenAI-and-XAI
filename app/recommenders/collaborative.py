@@ -39,6 +39,24 @@ class CollaborativeRecommender:
             return None
 
         return result.iloc[0]["song_id"]
+    
+    def normalize_scores(self,scores):
+
+        scores = pd.Series(scores)
+
+        if scores.max() == scores.min():
+
+            return pd.Series(
+                [1.0] * len(scores),
+                index=scores.index
+            )
+
+        return (
+            (scores - scores.min())
+            /
+            (scores.max() - scores.min())
+        )
+
 
     def recommend(self,song_name,n=10):
 
@@ -54,19 +72,32 @@ class CollaborativeRecommender:
 
         # Only compare ONE song against all songs
         similarity_scores = cosine_similarity(self.sparse_matrix[idx],self.sparse_matrix).flatten()
-        similar_indices = (similarity_scores.argsort()[::-1])
-        similar_indices = similar_indices[1:n+1]
+        similar_indices = (similarity_scores.argsort()[::-1])[1:n+1]
         similar_song_ids = (self.song_user_matrix.index[similar_indices])
 
         recommendations = (
             self.dataset[
                 self.dataset["song_id"]
-                .isin(similar_song_ids)].drop_duplicates("song_id")
+                .isin(similar_song_ids)]
+                .drop_duplicates("song_id").copy()
         )
 
-        recommendations["Similarity"] = (similarity_scores[similar_indices])
-        recommendations["Similarity"] = (recommendations["Similarity"].round(3))
+        recommendations["score"] = (similarity_scores[similar_indices])
+        recommendations["score"] = (self.normalize_scores(recommendations["score"]).round(3))
+
+         # This dataset has no popularity column
+        recommendations["popularity"] = None
+
+        recommendations["source"] = ("Collaborative")
+
+        
 
         return recommendations[
-            ["title","artist_name","year","Similarity"]
-        ]
+            [ "song_id","title","artist_name","year","popularity","score","source"]
+        ].rename(
+            columns={
+                "song_id": "id",
+                "title": "name",
+                "artist_name": "artists"
+            }
+        )

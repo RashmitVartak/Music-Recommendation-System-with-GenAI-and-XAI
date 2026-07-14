@@ -1,5 +1,7 @@
 import pandas as pd
 
+from app.recommenders import collaborative
+
 class HybridRecommender:
 
     def __init__(self,content_recommender,collaborative_recommender,content_weight=0.6,collaborative_weight=0.4,):
@@ -9,55 +11,100 @@ class HybridRecommender:
         self.content_weight = content_weight
         self.collaborative_weight = collaborative_weight
 
-    def recommend(self,song_name,top_n=10):
-        content_df = self.content.recommend(song_name,top_n * 2)
-        collaborative_df = self.collaborative.recommend(song_name,top_n * 2)
+    def set_weights(self,content_weight,collaborative_weight):
 
-        if content_df is None and collaborative_df is None:
+            self.content_weight = content_weight
+            self.collaborative_weight = collaborative_weight
+
+    def create_merge_key(self, df):
+
+        df = df.copy()
+
+        df["merge_key"] = (
+
+            df["name"]
+            .fillna("")
+            .str.lower()
+            .str.replace(r"[^\w\s]", "", regex=True)
+            .str.strip()
+
+            +
+
+            "|"
+
+            +
+
+            df["artists"]
+            .fillna("")
+            .str.lower()
+            .str.replace(r"[^\w\s]", "", regex=True)
+            .str.strip()
+    )
+
+        return df
+
+    def recommend(self,song_name,top_n=10):
+        content = self.content.recommend(song_name,top_n * 2)
+        collaborative = self.collaborative.recommend(song_name,top_n * 2)
+
+        if content is None and collaborative is None:
             return None
 
-        if content_df is None:
-            return collaborative_df.head(top_n)
+        if content is None:
+            collaborative["source"] = "Hybrid"
+            return collaborative.head(top_n)
 
-        if collaborative_df is None:
-            return content_df.head(top_n)
+        if collaborative is None:
+            content["source"] = "Hybrid"
+            return content.head(top_n)
 
-        # Rename similarity columns
-        content_df = content_df.rename(
-            columns={"Similarity Score": "Content Score"}
+
+        content = self.create_merge_key(content)
+        collaborative = self.create_merge_key(collaborative)
+
+        # Rename score columns before merge
+        content = content.rename(
+            columns={
+                "score": "content_score",
+                "id": "id_content"
+            }
         )
 
-        collaborative_df = collaborative_df.rename(
+        collaborative = collaborative.rename(
             columns={
-                "Similarity": "Collaborative Score",
-                "title": "name",
-                "artist_name": "artists"
+                "score": "collaborative_score",
+                "id": "id_collaborative"
             }
         )
 
         # Merge recommendations
         hybrid = pd.merge(
-            content_df,
-            collaborative_df[
-                [
-                    "name",
-                    "Collaborative Score"
-                ]
-            ],
-            on="name",
-            how="outer")
+            content,
+            collaborative,
+            on="song_id",
+            how="outer",
+            suffixes=("_content", "_collaborative")
+        )
 
-        hybrid["Content Score"] = hybrid["Content Score"].fillna(0)
+        hybrid["id"] = hybrid["id_content"].combine_first(hybrid["id_collaborative"])
 
-        hybrid["Collaborative Score"] = hybrid["Collaborative Score"].fillna(0)
+        hybrid["name"] = hybrid["name_content"].combine_first(hybrid["name_collaborative"])
 
-        # Weighted average
-        hybrid["Hybrid Score"] = (
-            self.content_weight* hybrid["Content Score"]
+        hybrid["artists"] = hybrid["artists_content"].combine_first(hybrid["artists_collaborative"])
+
+        hybrid["year"] = hybrid["year_content"].combine_first(hybrid["year_collaborative"])
+
+        hybrid["popularity"] = hybrid["popularity_content"].combine_first(hybrid["popularity_collaborative"])
+
+        hybrid["score"] = (
+            self.content_weight*hybrid["score"].fillna(0)
             +
-            self.collaborative_weight* hybrid["Collaborative Score"]
-)
+            self.collaborative_weight*hybrid["collaborative_score"].fillna(0)
+        )
 
-        hybrid = hybrid.sort_values("Hybrid Score",ascending=False)
+        hybrid = hybrid.sort_values("score",ascending=False)
 
-        return hybrid.head(top_n)
+        return hybrid[
+            [ "id","name","artists","year","popularity","score","source"]
+        ].assign(source="Hybrid").head(top_n)
+               
