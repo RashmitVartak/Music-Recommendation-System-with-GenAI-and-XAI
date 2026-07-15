@@ -61,13 +61,12 @@ class CollaborativeRecommender:
     def recommend(self,song_name,n=10):
 
         song_id = self.get_song_id(song_name)
+        if (song_id is None or song_id not in self.song_user_matrix.index):
 
-        if song_id is None:
-            return None
-
-        if song_id not in self.song_user_matrix.index:
-            return None
-
+            return pd.DataFrame(
+                columns=[ "id","name","artists","year","popularity","score","source"]
+                )
+           
         idx = self.song_user_matrix.index.get_loc(song_id)
 
         # Only compare ONE song against all songs

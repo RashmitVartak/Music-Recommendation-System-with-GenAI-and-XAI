@@ -1,7 +1,5 @@
 import pandas as pd
 
-from app.recommenders import collaborative
-
 class HybridRecommender:
 
     def __init__(self,content_recommender,collaborative_recommender,content_weight=0.6,collaborative_weight=0.4,):
@@ -42,19 +40,19 @@ class HybridRecommender:
     )
 
         return df
-
+    
     def recommend(self,song_name,top_n=10):
         content = self.content.recommend(song_name,top_n * 2)
         collaborative = self.collaborative.recommend(song_name,top_n * 2)
 
-        if content is None and collaborative is None:
+        if content.empty and collaborative.empty:
             return None
 
-        if content is None:
+        if content.empty:
             collaborative["source"] = "Hybrid"
             return collaborative.head(top_n)
 
-        if collaborative is None:
+        if collaborative.empty:
             content["source"] = "Hybrid"
             return content.head(top_n)
 
@@ -81,7 +79,7 @@ class HybridRecommender:
         hybrid = pd.merge(
             content,
             collaborative,
-            on="song_id",
+            on="merge_key",
             how="outer",
             suffixes=("_content", "_collaborative")
         )
@@ -97,7 +95,7 @@ class HybridRecommender:
         hybrid["popularity"] = hybrid["popularity_content"].combine_first(hybrid["popularity_collaborative"])
 
         hybrid["score"] = (
-            self.content_weight*hybrid["score"].fillna(0)
+            self.content_weight*hybrid["content_score"].fillna(0)
             +
             self.collaborative_weight*hybrid["collaborative_score"].fillna(0)
         )
@@ -105,6 +103,15 @@ class HybridRecommender:
         hybrid = hybrid.sort_values("score",ascending=False)
 
         return hybrid[
-            [ "id","name","artists","year","popularity","score","source"]
-        ].assign(source="Hybrid").head(top_n)
-               
+                [
+                    "id",
+                    "name",
+                    "artists",
+                    "content_score",
+                    "collaborative_score",
+                    "score",
+                    "year",
+                    "popularity",
+                    "source"
+                ]
+            ].head(top_n)      

@@ -33,8 +33,6 @@ class PopularityRecommender:
 
         recommendations["source"] = ("Popularity")
         
-        print("Columns:", recommendations.columns.tolist())
-        print(recommendations.head())
 
         return recommendations[
             [ "id","name","artists","year","popularity","score","source"]

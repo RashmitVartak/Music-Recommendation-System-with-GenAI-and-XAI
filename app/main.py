@@ -27,6 +27,15 @@ def get_collaborative_recommender():
         song_data_path="datasets/song_data.csv"
     )
 
+@st.cache_resource
+def get_hybrid_recommender(
+    recommender,
+    collaborative
+):
+    return HybridRecommender(
+        recommender,
+        collaborative
+    )
 
 @st.cache_data
 def load_spotify_dataset():
@@ -188,12 +197,21 @@ with tab4:
     top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
     content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1)
 
+    # collaborative_weight = st.slider("Collaborative Weight",0.0,1.0,0.4,0.1)
+
     collaborative_weight = 1 - content_weight
     hybrid.set_weights(content_weight,collaborative_weight)
 
+    # total = content_weight + collaborative_weight
 
-    # st.write(f"Content : {content_weight:.1f}")
-    # st.write(f"Collaborative : {collaborative_weight:.1f}")
+    # if abs(total - 1.0) > 0.01:
+    #     st.warning("Weights should sum to 1.0")
+    # else:
+    #     hybrid.set_weights(content_weight,collaborative_weight)
+
+
+    st.write(f"Content : {content_weight:.1f}")
+    st.write(f"Collaborative : {collaborative_weight:.1f}")
 
     if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
         
@@ -203,6 +221,8 @@ with tab4:
             st.error("No recommendations found.")
 
         else:
+            st.subheader("Hybrid Debug")
+            st.dataframe(recommendations)
             display_recommendations(recommendations,"Hybrid Score")
 
 # Dataset Preview
