@@ -4,10 +4,12 @@ import pandas as pd
 from app.data_loader import SpotifyDataLoader
 from app.preprocessing import SpotifyPreprocessor
 from app.recommenders.content_based import ContentBasedRecommender
-from app.utils import format_number
+from app.utils import format_number , diversity_card
 from app.recommenders.popularity import (PopularityRecommender)
 from app.recommenders.collaborative import (CollaborativeRecommender)
 from app.recommenders.hybrid import HybridRecommender
+from app.analytics import (RecommendationMetrics,RecommendationDiversity,RecommendationCharts,RecommendationInsights)
+
 
 #adding cache funtions
 @st.cache_resource
@@ -50,7 +52,20 @@ def load_spotify_dataset():
 
     return processor
 
+def diversity_card(title, score, insight, emoji):
 
+    st.markdown(
+        f"""
+    <div style="border:1px solid #E5E7EB;border-radius:12px;padding:10px 16px;background:#000000;">
+    <h4>{emoji} {title}</h4>
+    <h2 style="color:#2563EB;margin:0;">{score:.1f}%</h2>
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
+    st.progress(score/100)
+
+    st.caption(insight)
 
 def display_recommendations(recommendations,score_label="Recommendation Score"):
 
@@ -76,14 +91,16 @@ def display_recommendations(recommendations,score_label="Recommendation Score"):
                 st.metric(score_label,f"{row['score']*100:.1f}%")
 
 
-
-
 # Page Configuration
 st.set_page_config(
     page_title="Music Recommendation System",
     page_icon="🎵",
     layout="wide"
 )
+
+# Store the latest recommendations
+if "last_recommendations" not in st.session_state:
+    st.session_state["last_recommendations"] = None
 
 # Sidebar
 st.sidebar.title("Navigation")
@@ -131,12 +148,13 @@ col4.metric("⭐ Avg Popularity", summary["Average Popularity"])
 st.markdown("---")
 
 
-tab1, tab2, tab3, tab4 = st.tabs(
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
         "🎯 Content",
         "🔥 Popular",
         "👥 Collaborative",
-        "⭐ Hybrid"
+        "⭐ Hybrid",
+        "📊 Recommendation Insights"
     ]
 )
 
@@ -154,10 +172,10 @@ with tab1:
         top_n = st.number_input("Top",min_value=5,max_value=20,value=10)
 
     if st.button("Recommend Songs"):
-
         recommendations = recommender.recommend(song_name=song,n=top_n)
-
+        st.session_state["last_recommendations"] = recommendations
         display_recommendations(recommendations,"Content Score")
+
     st.markdown("---")
 
 
@@ -181,6 +199,8 @@ with tab3:
 
     if st.button("Recommend",key="collab_button"):
         recommendations = collaborative.recommend(song,top_n)
+
+        st.session_state["last_recommendations"] = recommendations
 
         if recommendations is None:
             st.error("Song not found.")
@@ -217,15 +237,146 @@ with tab4:
         
         recommendations = hybrid.recommend(song,top_n)
         
+        st.session_state["last_recommendations"] = recommendations
+
         if recommendations is None:
             st.error("No recommendations found.")
 
         else:
-            st.subheader("Hybrid Debug")
-            st.dataframe(recommendations)
             display_recommendations(recommendations,"Hybrid Score")
 
-# Dataset Preview
+with tab5:
+
+    st.header("📊 Recommendation Insights")
+    st.info("Generate recommendations from any recommender to see analytics.")
+
+    recommendations = st.session_state.get("last_recommendations")
+
+    if recommendations is None or recommendations.empty:
+        st.warning("Generate recommendations first.")
+
+    else:
+        summary = RecommendationMetrics.recommendation_summary(recommendations)
+
+        col1, col2 = st.columns(2)
+        col1.metric("🎵 Songs",summary["total_songs"])
+        col2.metric("👨‍🎤 Artists",summary["unique_artists"])
+
+        col1, col2 = st.columns(2)
+        col1.metric("⭐ Avg Score",f"{summary['average_score']:.1f}%")
+        popularity = summary["average_popularity"]
+        col2.metric("🔥 Avg Popularity",popularity if popularity is not None else "-")
+  
+        col1, col2 = st.columns(2)
+        col1.metric("📅 Avg Year",summary["average_year"])
+        col2.metric("🌍 Unique Years",summary["unique_years"])
+        
+
+        st.markdown("---")
+        st.subheader("🌍 Recommendation Quality Analysis")
+
+        diversity = RecommendationDiversity.diversity_summary(recommendations)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            diversity_card(
+                "Overall Diversity",
+                diversity["overall_diversity"],
+                RecommendationInsights.overall(diversity["overall_diversity"]),
+                "🌍"
+            )
+
+        with col2:
+
+            diversity_card(
+                "Artist Diversity",
+                diversity["artist_diversity"],
+                RecommendationInsights.artist(diversity["artist_diversity"]),
+                "🎤"
+            )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            diversity_card(
+                "Year Diversity",
+                diversity["year_diversity"],
+                RecommendationInsights.year(diversity["year_diversity"]),
+                "📅"
+            )
+
+        with col2:
+
+            diversity_card(
+                "Popularity Diversity",
+                diversity["popularity_diversity"],
+                RecommendationInsights.popularity(diversity["popularity_diversity"]),
+                "⭐"
+            )
+
+    st.markdown("---")
+    st.subheader("📈 Recommendation Analytics")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.altair_chart(
+            RecommendationCharts.artist_distribution(recommendations),
+            use_container_width=True
+        )
+
+    with col2:
+        st.altair_chart(
+            RecommendationCharts.year_distribution(recommendations),
+            use_container_width=True
+        )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        chart = RecommendationCharts.popularity_distribution(recommendations)
+
+        if chart is not None:
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("Popularity information is unavailable for these recommendations.")
+
+
+    with col2:
+        st.altair_chart(
+            RecommendationCharts.recommendation_scores(recommendations),
+            use_container_width=True
+        )   
+
+
+    # st.subheader("📈 Recommendation Analytics")
+
+    # st.write("Chart 1")
+    # st.altair_chart(
+    #     RecommendationCharts.artist_distribution(recommendations),
+    #     use_container_width=True
+    # )
+
+    # st.write("Chart 2")
+    # st.altair_chart(
+    #     RecommendationCharts.year_distribution(recommendations),
+    #     use_container_width=True
+    # )
+
+    # st.write("Chart 3")
+    # st.altair_chart(
+    #     RecommendationCharts.popularity_distribution(recommendations),
+    #     use_container_width=True
+    # )
+
+    # st.write("Chart 4")
+    # st.altair_chart(
+    #     RecommendationCharts.recommendation_scores(recommendations),
+    #     use_container_width=True
+    # )
+    # Dataset Preview
 # st.subheader("🎼 Dataset Preview")
 # st.dataframe(
 #     songs.head(15),

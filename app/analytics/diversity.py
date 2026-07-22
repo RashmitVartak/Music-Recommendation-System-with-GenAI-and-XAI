@@ -39,7 +39,7 @@ class RecommendationDiversity:
         return min(round(spread, 2),100)
 
     @staticmethod
-    def overall_diversity(df):
+    def diversity_summary(df):
 
         artist = RecommendationDiversity.artist_diversity(df)
         year = RecommendationDiversity.year_diversity(df)

@@ -110,3 +110,21 @@ Solution: Addressed this by introducing a Hybrid Recommender, allowing the Conte
 Solution: Standardized the recommender interface to always return a DataFrame (even when empty) and implemented graceful fallback logic in the hybrid recommender. This made the system more robust and prepared it for future cold-start handling strategies.
 
 "While implementing the hybrid recommender, I found that the content-based and collaborative models were built on different datasets with inconsistent song titles and identifiers. Rather than forcing unreliable matches, I designed the system to gracefully handle missing collaborative candidates and planned a metadata enrichment layer using the Spotify API to create a common catalog."
+
+About Recommendation Analytics
+| Chart                   | Question Answered                        |
+| ----------------------- | ---------------------------------------- |
+| Top Artists             | Who is being recommended most?           |
+| Year Distribution       | Which era do recommendations belong to?  |
+| Popularity Distribution | Are recommendations mainstream or niche? |
+| Recommendation Scores   | How confident is the recommender?        |
+
+
+About Recommendation Diversity
+
+| Diversity Metric         | What does it measure?                                                          |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| Overall Diversity        | How diverse and balanced are the recommendations overall?                      |
+| Artist Diversity         | Are recommendations coming from different artists or the same few artists?     |
+| Year Diversity           | Do recommendations span different release years or focus on a specific era?    |
+| Popularity Diversity     | Does the recommender balance mainstream hits with niche or less popular songs? |
