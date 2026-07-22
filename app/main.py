@@ -52,21 +52,6 @@ def load_spotify_dataset():
 
     return processor
 
-def diversity_card(title, score, insight, emoji):
-
-    st.markdown(
-        f"""
-    <div style="border:1px solid #E5E7EB;border-radius:12px;padding:10px 16px;background:#000000;">
-    <h4>{emoji} {title}</h4>
-    <h2 style="color:#2563EB;margin:0;">{score:.1f}%</h2>
-    </div>
-    """,
-        unsafe_allow_html=True
-    )
-    st.progress(score/100)
-
-    st.caption(insight)
-
 def display_recommendations(recommendations,score_label="Recommendation Score"):
 
     if recommendations is None or recommendations.empty:
@@ -265,8 +250,13 @@ with tab5:
         col1, col2 = st.columns(2)
         col1.metric("⭐ Avg Score",f"{summary['average_score']:.1f}%")
         popularity = summary["average_popularity"]
-        col2.metric("🔥 Avg Popularity",popularity if popularity is not None else "-")
-  
+        
+        if popularity is not None:
+            col2.metric("🔥 Avg Popularity",popularity)
+        else:
+            col2.metric("🔥 Avg Popularity","-")
+            col2.caption("Popularity information is unavailable for these recommendations.")
+
         col1, col2 = st.columns(2)
         col1.metric("📅 Avg Year",summary["average_year"])
         col2.metric("🌍 Unique Years",summary["unique_years"])
@@ -308,13 +298,23 @@ with tab5:
             )
 
         with col2:
+            popularity_available = ( "popularity" in recommendations.columns 
+                                    and recommendations["popularity"].notna().any())
+        
+            if popularity_available:
+                diversity_card("Popularity Diversity",
+                    diversity["popularity_diversity"],
+                    RecommendationInsights.popularity(diversity["popularity_diversity"]),
+                    "⭐"
+                )
 
-            diversity_card(
-                "Popularity Diversity",
-                diversity["popularity_diversity"],
-                RecommendationInsights.popularity(diversity["popularity_diversity"]),
-                "⭐"
-            )
+            else:
+
+                diversity_card("Popularity Diversity",
+                    0,
+                    "Popularity information is unavailable for these recommendations.",
+                    "⭐"
+                )
 
     st.markdown("---")
     st.subheader("📈 Recommendation Analytics")
