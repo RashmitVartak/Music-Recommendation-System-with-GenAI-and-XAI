@@ -9,7 +9,7 @@ from app.recommenders.popularity import (PopularityRecommender)
 from app.recommenders.collaborative import (CollaborativeRecommender)
 from app.recommenders.hybrid import HybridRecommender
 from app.analytics import (RecommendationMetrics,RecommendationDiversity,RecommendationCharts,RecommendationInsights)
-
+from app.xai.explainer import RecommendationExplainer
 
 #adding cache funtions
 @st.cache_resource
@@ -52,7 +52,42 @@ def load_spotify_dataset():
 
     return processor
 
-def display_recommendations(recommendations,score_label="Recommendation Score"):
+def display_xai(selected_song, recommended_song, recommender_type):
+    if recommender_type == "content":
+        explanation = RecommendationExplainer.explain_content(selected_song,recommended_song)
+
+    elif recommender_type == "hybrid":
+        explanation = RecommendationExplainer.explain_hybrid(selected_song,recommended_song)
+
+    elif recommender_type == "popularity":
+        explanation = RecommendationExplainer.explain_popularity(recommended_song)
+
+    else:
+        explanation = RecommendationExplainer.explain_collaborative()
+
+    with st.expander("💡 Why was this recommended?"):
+
+        if "similarity_score" in explanation:
+            # st.markdown("### 🎯 Similarity Score")
+            st.metric("🎯 Similarity Score", f"{explanation['similarity_score']}%")
+
+        if "matching_features" in explanation:
+            st.markdown("### 🎵 Top Matching Features")
+            for feature in explanation["matching_features"]:
+                if isinstance(feature, dict):
+                    st.write(
+                        f"✅ {feature['feature']} "
+                        f"({feature['similarity']}%)"
+                    )
+                else:
+                    st.write(f"✅ {feature}")
+
+        st.markdown("### 📝 Explanation")
+        st.info(explanation["explanation"])
+
+
+
+def display_recommendations(recommendations,songs,score_label="Recommendation Score",selected_song=None,recommender_type=None):
 
     if recommendations is None or recommendations.empty:
         st.warning("No recommendations found.")
@@ -74,6 +109,17 @@ def display_recommendations(recommendations,score_label="Recommendation Score"):
 
             with c2:
                 st.metric(score_label,f"{row['score']*100:.1f}%")
+
+            if recommender_type is not None:
+                # Do not show XAI for Collaborative recommendations
+                if recommender_type == "collaborative":
+                    pass
+                else:
+                    match = songs.loc[songs["id"] == row["id"]]
+
+                    if not match.empty:
+                        recommended_song = match.iloc[0]
+                        display_xai(selected_song,recommended_song,recommender_type)
 
 
 # Page Configuration
@@ -159,7 +205,12 @@ with tab1:
     if st.button("Recommend Songs"):
         recommendations = recommender.recommend(song_name=song,n=top_n)
         st.session_state["last_recommendations"] = recommendations
-        display_recommendations(recommendations,"Content Score")
+        display_recommendations(recommendations,
+                                songs,
+                                "Content Score",
+                                selected_song=songs.loc[songs["name"] == song].iloc[0],
+                                recommender_type="content"
+                                )
 
     st.markdown("---")
 
@@ -172,7 +223,11 @@ with tab2:
     top_n = st.slider("Top Songs",5,20,10,key="popular_slider")
     popular = popularity.recommend(top_n)
     
-    display_recommendations(popular,"Popularity Score")
+    display_recommendations(popular,
+                            songs,
+                            "Popularity Score",
+                            recommender_type="popularity"
+                            )
 
 
 with tab3:
@@ -191,7 +246,11 @@ with tab3:
             st.error("Song not found.")
 
         else:
-            display_recommendations(recommendations,"Collaborative Score")
+            display_recommendations(recommendations,
+                                    songs,
+                                    "Collaborative Score",
+                                    recommender_type="collaborative"
+                                    )
 
 with tab4:
 
@@ -202,18 +261,8 @@ with tab4:
     top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
     content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1)
 
-    # collaborative_weight = st.slider("Collaborative Weight",0.0,1.0,0.4,0.1)
-
     collaborative_weight = 1 - content_weight
     hybrid.set_weights(content_weight,collaborative_weight)
-
-    # total = content_weight + collaborative_weight
-
-    # if abs(total - 1.0) > 0.01:
-    #     st.warning("Weights should sum to 1.0")
-    # else:
-    #     hybrid.set_weights(content_weight,collaborative_weight)
-
 
     st.write(f"Content : {content_weight:.1f}")
     st.write(f"Collaborative : {collaborative_weight:.1f}")
@@ -228,7 +277,12 @@ with tab4:
             st.error("No recommendations found.")
 
         else:
-            display_recommendations(recommendations,"Hybrid Score")
+            display_recommendations(recommendations,
+                                    songs,
+                                    "Hybrid Score",
+                                    selected_song=songs.loc[songs["name"] == song].iloc[0],
+                                    recommender_type="hybrid"
+                                    )
 
 with tab5:
 
