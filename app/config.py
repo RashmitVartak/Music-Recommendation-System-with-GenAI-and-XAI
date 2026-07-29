@@ -9,10 +9,10 @@ load_dotenv(BASE_DIR / ".env")
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
-DATASET_DIR = BASE_DIR / "datasets"
+DATASET_DIR = Path("datasets")
 
-SONG_DATA = DATASET_DIR / "data.csv"
-# SONG_DATA = DATASET_DIR / "processed" / "merged_dataset.csv"
+# SONG_DATA = DATASET_DIR / "data.csv"
+SONG_DATA = DATASET_DIR / "processed" / "merged_dataset.csv"
 ARTIST_DATA = DATASET_DIR / "data_by_artist.csv"
 
 GENRE_DATA = DATASET_DIR / "data_by_genres.csv"

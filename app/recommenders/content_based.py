@@ -3,8 +3,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from app.services.feature_service import FeatureService
 
-
 class ContentBasedRecommender:
+    MIN_SIMILARITY = 0.01
 
     def __init__(self, df):
         self.df = df.reset_index(drop=True)
@@ -42,29 +42,35 @@ class ContentBasedRecommender:
     def recommend(self,song_name,n=10):
 
         index = self.get_song_index(song_name)
-
         if index is None:
             return None
         
-        query_vector = (
-            self.feature_matrix[index].reshape(1, -1)
-        )
-
+        query_vector = (self.feature_matrix[index].reshape(1, -1))
         similarity_scores = cosine_similarity(query_vector,self.feature_matrix).flatten()
+        sorted_indices = similarity_scores.argsort()[::-1]
 
-        sorted_indices = (similarity_scores.argsort()[::-1])
+        # Remove the query song
+        sorted_indices = [i for i in sorted_indices if i != index]
 
-        # Exclude the query song itself from the recommendations
-        sorted_indices = sorted_indices[1:n+1]
+        # Keep only sufficiently similar songs
+        sorted_indices = [
+            i for i in sorted_indices
+            if similarity_scores[i] >= self.MIN_SIMILARITY
+        ]
+
+        # Return only top n
+        sorted_indices = sorted_indices[:n]
 
         recommendations = (self.df.iloc[sorted_indices].copy())
 
         recommendations["score"] = (similarity_scores[sorted_indices])
 
-        recommendations["score"] = (self.normalize_scores(
-                                        recommendations["score"]
-                                        ).round(3)
-                                )
+        # recommendations["score"] = (self.normalize_scores(
+        #                                 recommendations["score"]
+        #                                 ).round(3)
+        #                         )
+        # no more normalized score for selected recommendation
+        recommendations["score"] = (similarity_scores[sorted_indices].round(3))
 
         recommendations["source"] = ("Content")
 

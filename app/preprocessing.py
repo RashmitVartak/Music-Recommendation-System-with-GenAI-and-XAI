@@ -11,6 +11,8 @@ class SpotifyPreprocessor:
     def clean_data(self):
         self.df.drop_duplicates(inplace=True)
         self.df = self.df.dropna(subset=AUDIO_FEATURES)
+        self.df["year"] = (pd.to_numeric(self.df["year"], errors="coerce"))
+        self.df["popularity"] = (pd.to_numeric(self.df["popularity"], errors="coerce"))
 
         return self
 
@@ -22,14 +24,17 @@ class SpotifyPreprocessor:
     
     def dataset_summary(self):
 
-        return {
+        valid_years = self.df[
+            self.df["year"].notna() &
+            (self.df["year"] != 0)
+        ]
 
+        return {
             "Songs": len(self.df),
             "Artists": self.df["artists"].nunique(),
-            "Years": self.df["year"].nunique(),
-            "Average Popularity": round(self.df["popularity"].mean(),2),
+            "Years": valid_years["year"].nunique(),
+            "Average Popularity": round(self.df["popularity"].dropna().mean(),1),
             "Genres": "To be computed later"
-
         }
     
     def missing_values(self):

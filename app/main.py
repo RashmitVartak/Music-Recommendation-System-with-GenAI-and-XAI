@@ -4,7 +4,7 @@ import pandas as pd
 from app.data_loader import SpotifyDataLoader
 from app.preprocessing import SpotifyPreprocessor
 from app.recommenders.content_based import ContentBasedRecommender
-from app.utils import format_number , diversity_card
+from app.utils import (format_number , diversity_card , format_year, format_popularity,)
 from app.recommenders.popularity import (PopularityRecommender)
 from app.recommenders.collaborative import (CollaborativeRecommender)
 from app.recommenders.hybrid import HybridRecommender
@@ -99,13 +99,22 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
             with c1:
                 st.subheader(row["name"])
                 st.write(f"**Artist:** {row['artists']}")
-                st.write(f"**Year:** {row['year']}")
+                st.write(f"**Year:** {format_year(row.get('year'))}")
 
-                if pd.notna(row.get("popularity")):
-                    st.write(f"**Popularity:** {row['popularity']}")
+                # if pd.notna(row.get("popularity")):
+                #     popularity = row.get("popularity")
+                st.write(f"**Popularity:** {format_popularity(row.get('popularity'))}")
 
                 source = row.get("source", "Unknown")
-                st.caption(f"Source: {source}")
+
+                source_icons = {
+                    "Content": "🎯 Content-Based",
+                    "Collaborative": "👥 Collaborative",
+                    "Hybrid": "⭐ Hybrid",
+                    "Popularity": "🔥 Popular"
+                }
+                
+                st.caption(source_icons.get(source, source))
 
             with c2:
                 st.metric(score_label,f"{row['score']*100:.1f}%")
