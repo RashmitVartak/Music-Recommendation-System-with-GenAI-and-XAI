@@ -128,3 +128,41 @@ About Recommendation Diversity
 | Artist Diversity         | Are recommendations coming from different artists or the same few artists?     |
 | Year Diversity           | Do recommendations span different release years or focus on a specific era?    |
 | Popularity Diversity     | Does the recommender balance mainstream hits with niche or less popular songs? |
+
+
+
+                  MASTER MUSIC CATALOG
+                 merged_dataset.csv
+                     (312K songs)
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   Search UI         Content Engine      Metadata/XAI
+        │                  │                  │
+        └──────────────────┼──────────────────┘
+                           │
+                    Hybrid Recommender
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+      Collaborative Dataset      No Interaction Data
+ (triplets + song_data)           (new songs)
+              │                         │
+              ▼                         ▼
+      Hybrid Recommendation     Content Recommendation
+
+
+
+the final architecture becomes
+                merged_dataset.csv
+                       │
+      ┌────────────────┴─────────────────┐
+      │                                  │
+ Search UI                     Content Recommender
+      │                                  │
+      └──────────────┐                   │
+                     ▼                   │
+             Hybrid Recommender ◄────────┘
+                     ▲
+                     │
+      triplets_file.csv + song_data.csv

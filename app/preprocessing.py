@@ -10,7 +10,7 @@ class SpotifyPreprocessor:
 
     def clean_data(self):
         self.df.drop_duplicates(inplace=True)
-        self.df.dropna(inplace=True)
+        self.df = self.df.dropna(subset=AUDIO_FEATURES)
 
         return self
 
