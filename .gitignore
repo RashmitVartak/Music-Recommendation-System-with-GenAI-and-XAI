@@ -1,1 +1,28 @@
+# Environment variables
 .env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# VS Code settings
+.vscode/
+
+# big datasets
+datasets/candidate_datasets/
+datasets/processed/
+
+# Python Cache
+.cache/
+.cache
+.pytest_cache/
+
+# Operating System
+.DS_Store
+Thumbs.db

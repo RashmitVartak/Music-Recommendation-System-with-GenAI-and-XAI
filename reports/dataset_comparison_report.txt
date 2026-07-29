@@ -1,0 +1,252 @@
+================================================================================
+Current
+================================================================================
+Shape               : (170653, 19)
+Memory              : 70.01 MB
+
+Columns
+--------------------------------------------------------------------------------
+valence
+year
+acousticness
+artists
+danceability
+duration_ms
+energy
+explicit
+id
+instrumentalness
+key
+liveness
+loudness
+mode
+name
+popularity
+release_date
+speechiness
+tempo
+
+Missing Values
+--------------------------------------------------------------------------------
+valence             0
+key                 0
+speechiness         0
+release_date        0
+popularity          0
+name                0
+mode                0
+loudness            0
+liveness            0
+instrumentalness    0
+year                0
+id                  0
+explicit            0
+energy              0
+duration_ms         0
+
+Duplicate Rows
+--------------------------------------------------------------------------------
+0
+
+Required Columns
+--------------------------------------------------------------------------------
+id                   YES
+name                 YES
+artists              YES
+popularity           YES
+danceability         YES
+energy               YES
+valence              YES
+tempo                YES
+speechiness          YES
+acousticness         YES
+instrumentalness     YES
+liveness             YES
+
+Release Year
+1921 -> 2020
+
+First Five Rows
+--------------------------------------------------------------------------------                                                                      
+   valence  year  acousticness                                                             artists  danceability  duration_ms  energy  explicit                      id  instrumentalness  key  liveness  loudness  mode                                                              name  popularity release_date  speechiness    tempo
+0   0.0594  1921         0.982  ['Sergei Rachmaninoff', 'James Levine', 'Berliner Philharmoniker']         0.279       831667   0.211         0  4BJqT0PrAfrxzMOxytFOIz          0.878000   10     0.665   -20.096     1  Piano Concerto No. 3 in D Minor, Op. 30: III. Finale. Alla breve           4         1921       0.0366   80.954
+1   0.9630  1921         0.732                                                      ['Dennis Day']         0.819       180533   0.341         0  7xPhfUan2yNtyFG0cUWkt8          0.000000    7     0.160   -12.441     1                                           Clancy Lowered the Boom           5         1921       0.4150   60.936
+2   0.0394  1921         0.961             ['KHP Kridhamardawa Karaton Ngayogyakarta Hadiningrat']         0.328       500062   0.166         0  1o6I8BglA6ylDMrIELygv1          0.913000    3     0.101   -14.850     1                                                         Gati Bali           5         1921       0.0339  110.339
+3   0.1650  1921         0.967                                                    ['Frank Parker']         0.275       210000   0.309         0  3ftBPsC5vPBKxYSee08FDH          0.000028    5     0.381    -9.316     1                                                         Danny Boy           3         1921       0.0354  100.109
+4   0.2530  1921         0.957                                                      ['Phil Regan']         0.418       166693   0.193         0  4d6HGyGT8e121BsdKmw9v6          0.000002    3     0.229   -10.096     1                                       When Irish Eyes Are Smiling           2         1921       0.0380  101.665
+
+
+
+================================================================================
+114K
+================================================================================
+Shape               : (114000, 20)
+Memory              : 53.44 MB
+
+Columns
+--------------------------------------------------------------------------------
+track_id
+artists
+album_name
+track_name
+popularity
+duration_ms
+explicit
+danceability
+energy
+key
+loudness
+mode
+speechiness
+acousticness
+instrumentalness
+liveness
+valence
+tempo
+time_signature
+track_genre
+
+Missing Values
+--------------------------------------------------------------------------------
+album_name          1
+track_name          1
+artists             1
+track_id            0
+speechiness         0
+time_signature      0
+tempo               0
+valence             0
+liveness            0
+instrumentalness    0
+acousticness        0
+loudness            0
+mode                0
+key                 0
+energy              0
+
+Duplicate Rows
+--------------------------------------------------------------------------------
+450
+
+Required Columns
+--------------------------------------------------------------------------------
+id                   NO
+name                 NO
+artists              YES
+popularity           YES
+danceability         YES
+energy               YES
+valence              YES
+tempo                YES
+speechiness          YES
+acousticness         YES
+instrumentalness     YES
+liveness             YES
+
+Release Year
+No year information found.
+
+First Five Rows
+--------------------------------------------------------------------------------
+                 track_id                 artists                                              album_name                  track_name  popularity  duration_ms  explicit  danceability  energy  key  loudness  mode  speechiness  acousticness  instrumentalness  liveness  valence    tempo  time_signature track_genre
+0  5SuOikwiRyPMVoIQDJUgSV             Gen Hoshino                                                  Comedy                      Comedy          73       230666     False         0.676  0.4610    1    -6.746     0       0.1430        0.0322          0.000001    0.3580    0.715   87.917               4    acoustic
+1  4qPNDBW1i3p13qLCt0Ki3A            Ben Woodward                                        Ghost (Acoustic)            Ghost - Acoustic          55       149610     False         0.420  0.1660    1   -17.235     1       0.0763        0.9240          0.000006    0.1010    0.267   77.489               4    acoustic
+2  1iJBSr7s7jYXzM8EGcbK5b  Ingrid Michaelson;ZAYN                                          To Begin Again              To Begin Again          57       210826     False         0.438  0.3590    0    -9.734     1       0.0557        0.2100          0.000000    0.1170    0.120   76.332               4    acoustic
+3  6lfxq3CG4xtTiEg7opyCyx            Kina Grannis  Crazy Rich Asians (Original Motion Picture Soundtrack)  Can't Help Falling In Love          71       201933     False         0.266  0.0596    0   -18.515     1       0.0363        0.9050          0.000071    0.1320    0.143  181.740               3    acoustic
+4  5vjLSffimiIP26QG5WcN2K        Chord Overstreet                                                 Hold On                     Hold On          82       198853     False         0.618  0.4430    2    -9.681     1       0.0526        0.4690          0.000000    0.0829    0.167  119.949               4    acoustic
+
+
+
+================================================================================
+900K
+================================================================================
+Shape               : (899702, 33)
+Memory              : 1430.74 MB
+
+Columns
+--------------------------------------------------------------------------------
+track_id
+streams
+artist_followers
+genres
+album_total_tracks
+track_artists
+artist_popularity
+explicit
+tempo
+chart
+album_release_date
+energy
+key
+added_at
+popularity
+track_album_album
+duration_ms
+available_markets
+track_track_number
+rank
+mode
+time_signature
+album_name
+speechiness
+region
+danceability
+valence
+acousticness
+liveness
+trend
+instrumentalness
+loudness
+name
+
+Missing Values
+--------------------------------------------------------------------------------
+streams               893832
+duration_ms           892662
+trend                 892662
+region                892662
+rank                  892662
+chart                 892662
+track_artists         799759
+track_track_number    799705
+track_album_album     799705
+added_at              505053
+artist_followers        7206
+genres                  7186
+artist_popularity       7186
+name                     487
+speechiness              478
+
+Duplicate Rows
+--------------------------------------------------------------------------------
+0
+
+Required Columns
+--------------------------------------------------------------------------------
+id                   NO
+name                 YES
+artists              NO
+popularity           YES
+danceability         YES
+energy               YES
+valence              YES
+tempo                YES
+speechiness          YES
+acousticness         YES
+instrumentalness     YES
+liveness             YES
+
+Release Year
+1899.0 -> 2024.0
+
+First Five Rows
+--------------------------------------------------------------------------------
+                 track_id  streams  artist_followers                                        genres  album_total_tracks    track_artists  artist_popularity explicit    tempo   chart album_release_date  energy  key              added_at  popularity track_album_album  duration_ms                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       available_markets  track_track_number   rank  mode  time_signature                                       album_name  speechiness  region  danceability  valence  acousticness  liveness      trend  instrumentalness  loudness                                                  name
+0  07vS8obfeZbr8H4MgQfXR7      NaN         2338837.0       ['indie pop', 'la indie', 'pov: indie']                 2.0  Phoebe Bridgers               74.0    False   97.129     NaN         2018-12-05   0.123  7.0  2021-07-04T11:06:43Z         0.0            single          NaN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      []                 2.0    NaN   1.0             4.0                                  Spotify Singles       0.0407     NaN         0.373    0.138        0.9480    0.0816        NaN          0.000000   -15.193  Friday I’m In Love - Recorded at Spotify Studios NYC
+1  1PEqh7awkpuepLBSq8ZwqD  27156.0           84914.0                    ['lilith', 'new wave pop']                11.0              NaN               51.0    False  103.773  top200         1996-04-16   0.453  5.0  2023-01-25T01:09:09Z        71.0               NaN     239960.0        ['AR', 'AU', 'AT', 'BE', 'BO', 'BR', 'BG', 'CA', 'CL', 'CO', 'CR', 'CY', 'CZ', 'DK', 'DO', 'DE', 'EC', 'EE', 'SV', 'FI', 'FR', 'GR', 'GT', 'HN', 'HK', 'HU', 'IS', 'IE', 'IT', 'LV', 'LT', 'LU', 'MY', 'MT', 'MX', 'NL', 'NZ', 'NI', 'NO', 'PA', 'PY', 'PE', 'PH', 'PL', 'PT', 'SG', 'SK', 'ES', 'SE', 'CH', 'TW', 'TR', 'UY', 'US', 'GB', 'AD', 'LI', 'MC', 'ID', 'JP', 'TH', 'VN', 'RO', 'IL', 'ZA', 'SA', 'AE', 'BH', 'QA', 'OM', 'KW', 'EG', 'MA', 'DZ', 'TN', 'LB', 'JO', 'PS', 'IN', 'BY', 'KZ', 'MD', 'UA', 'AL', 'BA', 'HR', 'ME', 'MK', 'RS', 'SI', 'KR', 'BD', 'PK', 'LK', 'GH', 'KE', 'NG', 'TZ', 'UG', 'AG', 'AM', 'BS', 'BB', 'BZ', 'BT', 'BW', 'BF', 'CV', 'CW', 'DM', 'FJ', 'GM', 'GE', 'GD', 'GW', 'GY', 'HT', 'JM', 'KI', 'LS', 'LR', 'MW', 'MV', 'ML', 'MH', 'FM', 'NA', 'NR', 'NE', 'PW', 'PG', 'WS', 'SM', 'ST', 'SN', 'SC', 'SL', 'SB', 'KN', 'LC', 'VC', 'SR', 'TL', 'TO', 'TT', 'TV', 'VU', 'AZ', 'BN', 'BI', 'KH', 'CM', 'TD', 'KM', 'GQ', 'SZ', 'GA', 'GN', 'KG', 'LA', 'MO', 'MR', 'MN', 'NP', 'RW', 'TG', 'UZ', 'ZW', 'BJ', 'MG', 'MU', 'MZ', 'AO', 'CI', 'DJ', 'ZM', 'CD', 'CG', 'IQ', 'LY', 'TJ', 'VE', 'ET', 'XK']                 NaN  187.0   1.0             4.0                                  Now in a Minute       0.0348  France         0.744    0.122        0.6270    0.0898  NEW_ENTRY          0.421000   -11.977                             I Love You Always Forever
+2  7E8pPgBY84oDaXRcqODavR      NaN           59150.0  ['deep groove house', 'house', 'tech house']                 2.0              NaN               54.0    False  122.030     NaN         2014-07-07   0.878  9.0                   NaN         0.0               NaN          NaN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      []                 NaN    NaN   0.0             4.0                                    Love Too Deep       0.0357     NaN         0.747    0.897        0.0794    0.3700        NaN          0.000531    -5.209                            Love Too Deep - Radio Edit
+3  0Atml4huw4Fgyk6YSHiK4M      NaN            1528.0                                            []                15.0              NaN                0.0    False   84.099     NaN         2001-01-24   0.484  7.0                   NaN         0.0               NaN          NaN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      []                 NaN    NaN   1.0             4.0                                 Voces Del Pueblo       0.0356     NaN         0.604    0.564        0.1000    0.0865        NaN          0.000000    -7.097                                 No Tiren Las Botellas
+4  4WYDmIZrwxBHdBYdvi5oQO      NaN            6776.0                ['chill lounge', 'deep chill']                26.0              NaN               28.0    False  156.017     NaN         2014-10-03   0.447  0.0                   NaN         7.0               NaN          NaN  ['AR', 'AU', 'AT', 'BE', 'BO', 'BR', 'BG', 'CA', 'CL', 'CO', 'CR', 'CY', 'CZ', 'DK', 'DO', 'DE', 'EC', 'EE', 'SV', 'FI', 'FR', 'GR', 'GT', 'HN', 'HK', 'HU', 'IS', 'IE', 'IT', 'LV', 'LT', 'LU', 'MY', 'MT', 'MX', 'NL', 'NZ', 'NI', 'NO', 'PA', 'PY', 'PE', 'PH', 'PL', 'PT', 'SG', 'SK', 'ES', 'SE', 'CH', 'TW', 'TR', 'UY', 'US', 'GB', 'AD', 'LI', 'MC', 'ID', 'JP', 'TH', 'VN', 'RO', 'IL', 'ZA', 'SA', 'AE', 'BH', 'QA', 'OM', 'KW', 'EG', 'MA', 'DZ', 'TN', 'LB', 'JO', 'PS', 'IN', 'BY', 'KZ', 'MD', 'UA', 'AL', 'BA', 'HR', 'ME', 'MK', 'RS', 'SI', 'KR', 'BD', 'PK', 'LK', 'GH', 'KE', 'NG', 'TZ', 'UG', 'AG', 'AM', 'BS', 'BB', 'BZ', 'BT', 'BW', 'BF', 'CV', 'CW', 'DM', 'FJ', 'GM', 'GE', 'GD', 'GW', 'GY', 'HT', 'JM', 'KI', 'LS', 'LR', 'MW', 'MV', 'ML', 'MH', 'FM', 'NA', 'NR', 'NE', 'PW', 'PG', 'PR', 'WS', 'SM', 'ST', 'SN', 'SC', 'SL', 'SB', 'KN', 'LC', 'VC', 'SR', 'TL', 'TO', 'TT', 'TV', 'VU', 'AZ', 'BN', 'BI', 'KH', 'CM', 'TD', 'KM', 'GQ', 'SZ', 'GA', 'GN', 'KG', 'LA', 'MO', 'MR', 'MN', 'NP', 'RW', 'TG', 'UZ', 'ZW', 'BJ', 'MG', 'MU', 'MZ', 'AO', 'CI', 'DJ', 'ZM', 'CD', 'CG', 'IQ', 'LY', 'TJ', 'VE', 'ET', 'XK']                 NaN    NaN   1.0             4.0  The Smooth Operator - Cosmopolitan Lounge Music       0.0613     NaN         0.761    0.761        0.0616    0.0822        NaN          0.873000   -10.961                El Momento de Despertar - Blue Sky Mix
+
+
+

@@ -1,0 +1,39 @@
+================================================================================
+Current
+================================================================================
+Rows : 170,653
+Missing id          : 0
+Missing name        : 0
+Missing artists     : 0
+Missing release_date: 0
+Missing year        : 0
+Duplicate IDs      : 0
+Duplicate Song+Artist : 12,968
+Eligible Rows : 170,653
+
+================================================================================
+114K
+================================================================================
+Rows : 114,000
+Missing id          : 0
+Missing name        : 1
+Missing artists     : 1
+Missing release_date: 114,000
+Missing year        : 114,000
+Duplicate IDs      : 24,259
+Duplicate Song+Artist : 32,656
+Eligible Rows : 113,999
+
+================================================================================
+900K
+================================================================================
+Rows : 899,702
+Missing id          : 0
+Missing name        : 487
+Missing artists     : 799,759
+Missing release_date: 1
+Missing year        : 58,115
+Duplicate IDs      : 0
+Duplicate Song+Artist : 276,609
+Eligible Rows : 99,939
+

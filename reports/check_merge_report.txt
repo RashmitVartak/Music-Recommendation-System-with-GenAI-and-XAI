@@ -1,0 +1,29 @@
+============================================================
+MERGED DATASET SUMMARY
+============================================================
+Shape: (312232, 24)
+
+Missing Values:
+album_name           137841
+genres               215231
+artist_popularity    215231
+artist_followers     215233
+release_date         174436
+year                  73241
+dtype: int64
+
+Duplicate IDs:
+0
+
+Duplicate Song + Artist:
+0
+
+First 5 Rows:
+   valence    year  acousticness  ...                                             genres  artist_popularity  artist_followers
+0    0.283  2015.0      0.369000  ...                                                NaN                NaN               NaN
+1    0.756  2012.0      0.038400  ...                                                NaN                NaN               NaN
+2    0.514  1981.0      0.127000  ...  ['album rock', 'classic rock', 'hard rock', 'h..]               70.0         5402839.0
+3    0.477  1977.0      0.652000  ...  ['album rock', 'art rock', 'beatlesque', 'clas..]               68.0         3987909.0
+4    0.766  2013.0      0.000176  ...                    ['metropopolis', 'modern rock']               64.0          894970.0
+
+[5 rows x 24 columns]

@@ -1,0 +1,14 @@
+================================================================================
+114K
+================================================================================
+Original Shape : (114000, 20)
+Normalized Shape : (114000, 23)
+Saved To : D:\Projects\XAI on Music Recommendation System\datasets\processed\114k_normalized.csv
+
+================================================================================
+900K
+================================================================================
+Original Shape : (899702, 33)
+Normalized Shape : (899702, 23)
+Saved To : D:\Projects\XAI on Music Recommendation System\datasets\processed\900k_normalized.csv
+

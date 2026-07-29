@@ -1,0 +1,21 @@
+================================================================================
+114K
+================================================================================
+Rows Loaded                    : 114,000
+Removed (Missing ID/Name)      : 1
+Duplicate IDs Found            : 24,259
+Duplicate Song+Artist Found    : 8,397
+Final Rows                     : 81,343
+Saved To                       : D:\Projects\XAI on Music Recommendation System\datasets\processed\114k_repaired.csv
+
+================================================================================
+900K
+================================================================================
+Rows Loaded                    : 899,702
+Removed (Missing ID/Name)      : 487
+Removed (Missing Artists)      : 799,276
+Duplicate IDs Found            : 0
+Duplicate Song+Artist Found    : 2,034
+Final Rows                     : 97,905
+Saved To                       : D:\Projects\XAI on Music Recommendation System\datasets\processed\900k_repaired.csv
+
