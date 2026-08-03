@@ -46,16 +46,6 @@ def format_year(year):
         return "Unknown"
 
 
-def format_popularity(popularity):
-    """Format popularity score."""
-    if pd.isna(popularity):
-        return "Unknown"
-
-    try:
-        return str(int(float(popularity)))
-    except (ValueError, TypeError):
-        return "Unknown"
-
 def format_text(value):
     """Format text fields like album, artist, genre."""
     if pd.isna(value):
@@ -67,3 +57,18 @@ def format_text(value):
         return "Unknown"
 
     return value
+
+def format_duration(duration_ms):
+
+    if pd.isna(duration_ms):
+        return ""
+
+    try:
+        total_seconds = int(duration_ms / 1000)
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        return f"{minutes}m {seconds:02d}s"
+
+    except Exception:
+        return ""
+    

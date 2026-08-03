@@ -15,8 +15,7 @@ class ContentBasedRecommender:
         """Checks for available songs in the dataset."""
         return sorted(self.df["name"].dropna().unique())
 
-    def get_song_index(self,song_name):
-        """Returns the index of the song in the dataset by matching the song name."""
+    def get_song_index(self, song_name):
         matches = self.df[self.df["name"].str.lower() == song_name.lower()]
 
         if matches.empty:
@@ -69,6 +68,7 @@ class ContentBasedRecommender:
         #                                 recommendations["score"]
         #                                 ).round(3)
         #                         )
+
         # no more normalized score for selected recommendation
         recommendations["score"] = (similarity_scores[sorted_indices].round(3))
 

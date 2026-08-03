@@ -4,42 +4,41 @@ import pandas as pd
 from app.data_loader import SpotifyDataLoader
 from app.preprocessing import SpotifyPreprocessor
 from app.recommenders.content_based import ContentBasedRecommender
-from app.utils import (format_number , diversity_card , format_year, format_popularity,)
+from app.utils import (format_number , diversity_card, format_text ,format_year,format_duration,)
 from app.recommenders.popularity import (PopularityRecommender)
 from app.recommenders.collaborative import (CollaborativeRecommender)
 from app.recommenders.hybrid import HybridRecommender
 from app.analytics import (RecommendationMetrics,RecommendationDiversity,RecommendationCharts,RecommendationInsights)
 from app.xai.explainer import RecommendationExplainer
+from app.services.catalog_service import CatalogService
 
 #adding cache funtions
-@st.cache_resource
+# @st.cache_resource
 def get_content_recommender(songs):
     return ContentBasedRecommender(songs)
 
+# @st.cache_resource
+def get_catalog_service(songs):
+    return CatalogService(songs)
 
-@st.cache_resource
+# @st.cache_resource
 def get_popularity_recommender(songs):
     return PopularityRecommender(songs)
 
 
-@st.cache_resource
+# @st.cache_resource
 def get_collaborative_recommender():
     return CollaborativeRecommender(
         triplets_path="datasets/triplets_file.csv",
         song_data_path="datasets/song_data.csv"
     )
 
-@st.cache_resource
-def get_hybrid_recommender(
-    recommender,
-    collaborative
-):
-    return HybridRecommender(
-        recommender,
-        collaborative
-    )
+# @st.cache_resource
+def get_hybrid_recommender(recommender,collaborative):
 
-@st.cache_data
+    return HybridRecommender(recommender,collaborative)
+
+# @st.cache_data
 def load_spotify_dataset():
 
     loader = SpotifyDataLoader().load_data()
@@ -92,45 +91,52 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
     if recommendations is None or recommendations.empty:
         st.warning("No recommendations found.")
         return
-    # this function displays the recommendations in a structured format using Streamlit containers and columns. It iterates through each recommendation and presents the song details along with the score in a user-friendly layout.
+    # this function displays the recommendations in a structured format using Streamlit containers and columns. 
+    # It iterates through each recommendation and presents the song details along with the score in a user-friendly layout.
+
     for _, row in recommendations.iterrows():
         with st.container(border=True):
-            c1, c2 = st.columns([4, 1])
-            with c1:
-                st.subheader(row["name"])
-                st.write(f"**Artist:** {row['artists']}")
-                st.write(f"**Year:** {format_year(row.get('year'))}")
+            left, right = st.columns([3,2])
 
-                # if pd.notna(row.get("popularity")):
-                #     popularity = row.get("popularity")
-                st.write(f"**Popularity:** {format_popularity(row.get('popularity'))}")
+            with left:
+
+                st.subheader(row["name"])
+                st.write(f"Artist: {format_text(row.get('artists'))}")
+
+                album = row.get("album_name")
+                if pd.notna(album) and str(album).strip() != "":
+                    st.write(f"Album: {format_text(album)}")
+                else:
+                    st.write("Album: Solo Track/ Single Release")
 
                 source = row.get("source", "Unknown")
-
                 source_icons = {
                     "Content": "🎯 Content-Based",
                     "Collaborative": "👥 Collaborative",
                     "Hybrid": "⭐ Hybrid",
                     "Popularity": "🔥 Popular"
                 }
-                
+
                 st.caption(source_icons.get(source, source))
 
-            with c2:
-                st.metric(score_label,f"{row['score']*100:.1f}%")
-
+            with right:
+                st.metric(label=score_label, value=f"{row['score']*100:.1f}%")
+                st.write(f"Year: {format_year(row.get('year'))}")
+                
+                duration = row.get("duration_ms")
+                if pd.notna(duration):
+                    st.write(f"Duration: {format_duration(duration)}")
+             
             if recommender_type is not None:
-                # Do not show XAI for Collaborative recommendations
-                if recommender_type == "collaborative":
-                    pass
-                else:
+                if recommender_type != "collaborative":
                     match = songs.loc[songs["id"] == row["id"]]
 
                     if not match.empty:
                         recommended_song = match.iloc[0]
+
                         display_xai(selected_song,recommended_song,recommender_type)
 
-
+   
 # Page Configuration
 st.set_page_config(
     page_title="Music Recommendation System",
@@ -163,6 +169,8 @@ st.write(
 processor = load_spotify_dataset()
 
 songs = processor.get_dataframe()
+
+catalog = get_catalog_service(songs)
 
 summary = processor.dataset_summary()
 
@@ -206,18 +214,20 @@ with tab1:
     col1, col2 = st.columns([3,1])
 
     with col1:
-        song = st.selectbox("Choose a Song",recommender.available_songs())
+        selected_song = st.selectbox("Choose a Song",catalog.available_songs())
 
     with col2:
         top_n = st.number_input("Top",min_value=5,max_value=20,value=10)
 
     if st.button("Recommend Songs"):
-        recommendations = recommender.recommend(song_name=song,n=top_n)
+        recommendations = recommender.recommend(song_name=catalog.get_song_name(selected_song),n=top_n)
+        recommendations = catalog.enrich_recommendations(recommendations)
+
         st.session_state["last_recommendations"] = recommendations
         display_recommendations(recommendations,
                                 songs,
                                 "Content Score",
-                                selected_song=songs.loc[songs["name"] == song].iloc[0],
+                                selected_song=catalog.get_song_row(selected_song),
                                 recommender_type="content"
                                 )
 
@@ -231,7 +241,7 @@ with tab2:
 
     top_n = st.slider("Top Songs",5,20,10,key="popular_slider")
     popular = popularity.recommend(top_n)
-    
+    popular = catalog.enrich_recommendations(popular)
     display_recommendations(popular,
                             songs,
                             "Popularity Score",
@@ -248,7 +258,7 @@ with tab3:
 
     if st.button("Recommend",key="collab_button"):
         recommendations = collaborative.recommend(song,top_n)
-
+        recommendations = catalog.enrich_recommendations(recommendations)
         st.session_state["last_recommendations"] = recommendations
 
         if recommendations is None:
@@ -265,7 +275,7 @@ with tab4:
 
     st.subheader("⭐ Hybrid Recommendation")
 
-    song = st.selectbox("Choose Song",recommender.available_songs(),key="hybrid_song")
+    song = st.selectbox("Choose Song",catalog.available_songs(),key="hybrid_song")
 
     top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
     content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1)
@@ -278,10 +288,11 @@ with tab4:
 
     if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
         
-        recommendations = hybrid.recommend(song,top_n)
-        
+        recommendations = hybrid.recommend(song_name=catalog.get_song_name(song),top_n=top_n)
+        recommendations = catalog.enrich_recommendations(recommendations)
+         
         st.session_state["last_recommendations"] = recommendations
-
+        
         if recommendations is None:
             st.error("No recommendations found.")
 
@@ -289,7 +300,7 @@ with tab4:
             display_recommendations(recommendations,
                                     songs,
                                     "Hybrid Score",
-                                    selected_song=songs.loc[songs["name"] == song].iloc[0],
+                                    selected_song=catalog.get_song_row(song),
                                     recommender_type="hybrid"
                                     )
 

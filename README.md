@@ -166,3 +166,17 @@ the final architecture becomes
                      ▲
                      │
       triplets_file.csv + song_data.csv
+
+
+we created CatalogService?
+Ans:-Because its main purpose is not to change the recommender.
+
+It solves:
+
+-duplicate titles in the UI
+-formatted dropdowns
+-metadata retrieval
+-future search/autocomplete
+-richer recommendation cards
+
+The recommenders don't have to know about any of that.
