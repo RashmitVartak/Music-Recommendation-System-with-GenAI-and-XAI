@@ -1,6 +1,9 @@
 import pandas as pd
-
-
+'''Responsible for
+-metadata
+-dropdown display
+-enrichment
+-lookup'''
 class CatalogService:
     """
     Handles song catalog operations such as
@@ -8,7 +11,7 @@ class CatalogService:
     - duplicate handling
     - metadata lookup
     """
-
+    #private methods
     def __init__(self, songs: pd.DataFrame):
         self.songs = songs.reset_index(drop=True)
 
@@ -85,10 +88,7 @@ class CatalogService:
         return self.songs.iloc[song["df_index"]]
 
     def enrich_recommendations(self, recommendations: pd.DataFrame):
-        """
-        Enrich recommendation results with metadata from merged_dataset.
-        """
-
+        """Enrich recommendation results with metadata from merged_dataset."""
         if recommendations is None or recommendations.empty:
             return recommendations
 

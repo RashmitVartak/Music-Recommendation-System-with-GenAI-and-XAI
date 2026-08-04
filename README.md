@@ -180,3 +180,299 @@ It solves:
 -richer recommendation cards
 
 The recommenders don't have to know about any of that.
+
+Phase 1: Migration of data and stabilization . 
+          After Realizing that our current 130k songs dataset contains mostly 1916 to 2016 songs and thus
+          reduced the exprience of the user so to improve it we added 2 dataset from kaggle 
+          900k (https://www.kaggle.com/datasets/olegfostenko/almost-a-million-spotify-tracks)
+          114k (https://www.kaggle.com/datasets/saichaitanyareddyai/spotify-tracks-dataset-audio-features)
+
+          and we preprocessed them by removing unneccesary columns, missing values. 114k dataset had significantly large value of missing dataset. To get a detailed report of every ETL of both dataset go throuh reports folder.
+
+          Then, we then made some architectural changes in the system to ensure that recommenders get the same list of features
+          from the new dataset created (merged_dataset.csv) and thenyaa
+
+Phase 2: Added CatalogService for better, metadata enrichment to be displayed in recommendation cards
+          Advantage of creating new dataset was that, we now have more features for every songs and we can add them to the recommendation cards to improve UX. Here, CatalogService acts as a middle man to smoothen the extraction of data from merged_data.csv and provide it to the recommender in much better way and yaa bus etna hi tha
+
+Phase 3:
+          In this phase we try to tackle the original problem about"What if a user searches a song which is not present in merged_dataset?"
+                                             Phase 3.1(Live Spotify Search Fallback)
+                                             If a song isn't found locally, query Spotify and display its metadata.
+User types a song                                                ↓
+↓                                            Phase 3.2(Album Artwork)
+↓                                            Use the album_image URL your SpotifyClient already returns to show album covers in the UI.
+Search local merged_dataset                                      ↓
+↓                                            Phase 3.3(30-second Preview)
+Found?                                       If preview_url is available, embed it with st.audio() so users can listen immediately
+├── Yes                                                          ↓
+│      │                                     Phase 3.4(Smarter Search)
+│      ▼                                     Replace the giant dropdown with a searchable interface and optional artist filtering.
+│  Recommendations                                               ↓
+└── No                                     Phase 3.5(Metadata Enrichment)
+       │                                 When Spotify provides richer information than our dataset (album art, release details)       ▼                                     display it alongside recommendations without changing the recommendation engine. 
+Spotify Search
+       │
+       ▼
+Display Spotify Metadata
+       │
+       ▼
+Search again locally using title + artist
+       │
+       ▼
+Recommendations
+
+Phase 3 - Intelligent Spotify Fallback (2-Stage Matching)
+Problem Statement:
+Originally, the recommendation engine could only recommend songs that already existed in the local merged_dataset.csv (312K songs).
+If a user searched for a newly released song that wasn't present in the dataset, the application simply returned:
+"No songs found."
+
+To solve this, we introduced a 2-stage matching approach that combines Spotify Search with our local recommendation engine.
+
+Design Principle:
+The Spotify API is not used to generate recommendations. It is used only as a live song discovery layer. Once a song is identified, the application maps it to the closest song in the local catalog and leverages the existing explainable recommendation engine to produce recommendations. This keeps the recommendation process fast, explainable, and independent of Spotify while allowing users to search for songs that may not yet exist in the local dataset.
+
+
+User searches:
+       APT
+        │
+        ▼
+Search Local Dataset
+        │
+        ▼
+     No Match
+        │
+        ▼
+     Spotify Search
+        │
+        ▼
+     Returns:
+     APT.
+     ROSÉ
+     2024
+        │
+        ▼
+SearchService.get_candidates()
+        │
+        ▼
+Candidate Songs (~200)
+        │
+        ▼
+MatchingService.find_best_match()
+        │
+        ▼
+Best Local Match:APT (98.7%)
+        │
+        ▼
+Content/Hybrid Recommender
+        │
+        ▼
+Final Song Recommendations
+
+
+Overall Architecture:
+                User Search
+                     │
+                     ▼
+            Search Local Dataset
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+      Song Found           Song Not Found
+          │                     │
+          ▼                     ▼
+ Recommendations         Spotify Search
+                                │
+                                ▼
+                     Get Spotify Metadata
+                                │
+                                ▼
+                     Candidate Generation
+                                │
+                                ▼
+                      Fuzzy Matching
+                                │
+                                ▼
+                  Closest Local Song Found
+                                │
+                                ▼
+                 Existing Recommendation Engine
+You may askWhy Two Stages?
+Ans:Our local catalog contains approximately 312,000 songs.
+Comparing every Spotify search result against all 312K songs would require:
+1 Spotify Search
+        ↓
+312,000 similarity comparisons
+This is inefficient.
+
+Instead, we divide the problem into two stages:
+Stage 1 → Filter                             Stage 2 → Rank
+312,000 songs                                200 candidates
+        ↓                        →                   ↓
+200 likely candidates                        Top 5 best matches
+
+This reduces the computation dramatically while maintaining high accuracy.
+
+Stage 1 - Candidate Generation (SearchService.get_candidates())
+Purpose:Reduce the search space from 312K songs to a few hundred likely matches.
+
+Inputs
+Spotify Song Title
+Spotify Artist
+Process
+Convert title and artist to lowercase.
+Split them into individual words (tokens).
+Search the local dataset using these tokens.
+Match against:
+Song title
+Artist name
+
+Sort candidates by:
+Popularity
+Release Year
+Return the top 200 candidates.
+
+Example
+Spotify returns:
+Song   : Believer
+Artist : Imagine Dragons
+
+Candidate Generation returns:
+Believer
+Believer (Live)
+Believer Remix
+Thunder
+Enemy
+Natural
+
+Instead of comparing against 312,000 songs, we now compare only these candidates.
+
+Stage 2 - Fuzzy Matching (MatchingService.find_best_match())
+Purpose:Find the closest local song from the candidate pool.
+
+Inputs
+Spotify Track Metadata
+Candidate DataFrame (≈200 songs)
+Similarity Calculation
+
+Each candidate receives three scores:
+
+1. Title Similarity (60%)
+Calculated using Python's SequenceMatcher.
+
+Example:
+Believer
+Believer (Live)
+
+Similarity = 0.92
+2. Artist Similarity (30%)
+
+Example:
+Imagine Dragons
+Imagine Dragons
+
+Similarity = 1.00
+3. Release Year Similarity (10%)
+
+Example:
+
+Spotify:2017
+Local:2018
+Difference = 1 year
+Year Score = 0.8
+
+Final Score/ Matching Score =
+0.60 × Title Similarity
++
+0.30 × Artist Similarity
++
+0.10 × Year Similarity
+
+Example)
+Spotify Song
+
+Believer
+Imagine Dragons
+2017
+
+Candidate 1
+
+Believer
+Imagine Dragons
+2017
+
+Scores
+Title   = 1.00
+Artist  = 1.00
+Year    = 1.00
+
+Final
+100%
+
+Candidate 2
+Believer (Live)
+Imagine Dragons
+2018
+
+Scores
+Title   = 0.92
+Artist  = 1.00
+Year    = 0.80
+
+Final
+≈93%
+
+Candidate 3
+Believe
+Cher
+1998
+
+Scores
+Title   = 0.65
+Artist  = 0.10
+Year    = 0.00
+
+Final
+≈42%
+
+The candidates are then sorted by Matching Score, and the highest-scoring song is selected as the closest local match.
+
+Why Use SequenceMatcher?
+Ans: Instead of exact string matching, SequenceMatcher computes a similarity ratio between two strings.
+
+Examples:
+Spotify Song	    Local Song	          Similarity
+APT.                  APT	          ~0.95
+Believer	          Believer (Live)	~0.92
+Shape of You       	Shape Of You	     ~1.00
+
+This makes the matching process robust against punctuation, case differences, and small variations in titles.
+
+
+
+Advantages of the 2-Stage Approach
+-Efficient: reduces comparisons from ~312K to ~200.
+-Scalable: performance remains fast even as the catalog grows.
+-Explainable: every recommendation is based on transparent similarity metrics.
+-Independent of Spotify: recommendations are generated from the local catalog, while Spotify is used only to identify songs missing from the dataset.
+
+
+spotify_fallback() Helper function: 
+Workflow: 
+                        main.py
+                        ↓
+                        spotify_fallback()
+                        ↓
+                        Spotify Search
+                        ↓
+                        Candidate Generation
+                        ↓
+                        Matching
+                        ↓
+                        Return local song
+                        ↓
+                        main.py continues normally
+
+
+

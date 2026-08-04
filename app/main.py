@@ -11,34 +11,47 @@ from app.recommenders.hybrid import HybridRecommender
 from app.analytics import (RecommendationMetrics,RecommendationDiversity,RecommendationCharts,RecommendationInsights)
 from app.xai.explainer import RecommendationExplainer
 from app.services.catalog_service import CatalogService
+from app.services.search_service import SearchService
+from app.services.spotify_service import SpotifyService
+from app.services.matching_service import MatchingService
 
 #adding cache funtions
-# @st.cache_resource
-def get_content_recommender(songs):
-    return ContentBasedRecommender(songs)
-
-# @st.cache_resource
+@st.cache_resource
 def get_catalog_service(songs):
     return CatalogService(songs)
 
-# @st.cache_resource
+@st.cache_resource
+def get_search_service(songs):
+    return SearchService(songs)
+
+def get_spotify_service():
+    return SpotifyService()
+
+def get_matching_service():
+    return MatchingService()
+
+@st.cache_resource
+def get_content_recommender(songs):
+    return ContentBasedRecommender(songs)
+
+@st.cache_resource
 def get_popularity_recommender(songs):
     return PopularityRecommender(songs)
 
 
-# @st.cache_resource
+@st.cache_resource
 def get_collaborative_recommender():
     return CollaborativeRecommender(
         triplets_path="datasets/triplets_file.csv",
         song_data_path="datasets/song_data.csv"
     )
 
-# @st.cache_resource
+@st.cache_resource
 def get_hybrid_recommender(recommender,collaborative):
 
     return HybridRecommender(recommender,collaborative)
 
-# @st.cache_data
+@st.cache_data
 def load_spotify_dataset():
 
     loader = SpotifyDataLoader().load_data()
@@ -136,13 +149,109 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
 
                         display_xai(selected_song,recommended_song,recommender_type)
 
+def spotify_fallback(query, search, spotify, matching):
+    """
+    Handles Spotify fallback when a song is not found locally.
+
+    Returns
+    -------
+    str | None
+        Name of the matched local song if found,
+        otherwise None.
+    """
+
+    st.warning("Song not found in local catalog.")
+
+    spotify_track = spotify.search_song(query)
+
+    if spotify_track is None:
+        st.error("Song not found on Spotify.")
+        return None
+
+    st.success("Song found on Spotify!")
+
+    # Spotify Metadata
+    col1, col2,col3 = st.columns([4,3,3])
+
+    with col1:
+        st.markdown(f"#### {spotify_track['name']}")
+        
+        # if spotify_track.get("album_image"):
+        #     st.image(
+        #         spotify_track["album_image"],
+        #         use_column_width=True)
+
+    with col2:
+        st.markdown(f"**Artist:** {spotify_track['artist']}")
+        st.write(f"**Album:** {spotify_track['album']}")
+
+    with col3:
+        st.write(f"**Duration:** {format_duration(spotify_track['duration_ms'])}")
+        st.write(f"**Release Date:** {spotify_track['release_date']}")
+
+    # Wait for user action
+    # if not st.button("🎵 Find Similar Songs",key="spotify_match"):
+    #     return None
+
+    btn1, btn2 = st.columns([5,1])
+
+    with btn1:
+        find_match = st.button("🎵 Find Similar Songs",key="spotify_match")
+
+    with btn2:
+        recommend = st.button("🎯 Recommend Songs",key="spotify_recommend")
+
+    if find_match:
+        # Stage 1
+        candidates = search.get_candidates(spotify_track["name"],
+                                    spotify_track["artist"],)
+
+        # Debug
+        # with st.expander("Candidate Songs"):
+        #     st.dataframe(
+        #         candidates[
+        #             [
+        #                 "name",
+        #                 "artists",
+        #                 "year",
+        #             ]
+        #         ]
+        #     )
+
+        # Stage 2
+
+        matches = matching.find_best_match(spotify_track,candidates)
+
+        if matches.empty:
+            st.error("No confident match found in local recommendation catalog.")
+            return None
+
+        st.success(f"Matched with: {matches.iloc[0]['name']}")
+
+        with st.expander("Matched Songs"):
+            st.dataframe(matches[["name","artists","matching_score"]])
+
+        st.session_state["matched_song"] = matches.iloc[0]
+
+    # Return the matched LOCAL song
+    # return matches.iloc[0]["name"]
+
+    if recommend:
+        matched_song = st.session_state.get("matched_song")
+        if matched_song is None:
+            st.warning("Please click 'Find Similar Songs' first.")
+            return None
+
+        return matched_song["name"]
+
+
+
    
 # Page Configuration
 st.set_page_config(
     page_title="Music Recommendation System",
     page_icon="🎵",
-    layout="wide"
-)
+    layout="wide")
 
 # Store the latest recommendations
 if "last_recommendations" not in st.session_state:
@@ -168,11 +277,17 @@ st.write(
 # Load Dataset
 processor = load_spotify_dataset()
 
+summary = processor.dataset_summary()
+
 songs = processor.get_dataframe()
 
 catalog = get_catalog_service(songs)
 
-summary = processor.dataset_summary()
+search = get_search_service(songs)
+
+spotify = get_spotify_service()
+
+matching = get_matching_service() 
 
 # Initializing the recommenders 
 recommender = get_content_recommender(songs)
@@ -209,27 +324,72 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
 with tab1:
     st.subheader("Content-Based Recommendation")
-    st.markdown("Find Similar Songs")
-
+    # st.markdown("Find Similar Songs")
     col1, col2 = st.columns([3,1])
 
     with col1:
-        selected_song = st.selectbox("Choose a Song",catalog.available_songs())
+        # selected_song = st.selectbox("Choose a Song",catalog.available_songs())
+       
+        query = st.text_input("🔍 Search Song",placeholder="Type song, artist or album...")
+        recommend_local = False
+
+        search_results = search.search(query)
+
+        if query:
+            if search_results.empty:
+                selected_song = spotify_fallback(query=query,
+                                search=search,
+                                spotify=spotify,
+                                matching=matching,)
+
+            else:
+                options = search.build_display_names(search_results)
+                selected_song = st.selectbox("Matching Songs",options)
+
+                if selected_song is not None:
+                    recommend_local = st.button("🎯 Recommend Songs",key="local_recommend")
+                else:
+                    recommend_local = False
+
+        else:
+            selected_song = None
 
     with col2:
         top_n = st.number_input("Top",min_value=5,max_value=20,value=10)
 
-    if st.button("Recommend Songs"):
-        recommendations = recommender.recommend(song_name=catalog.get_song_name(selected_song),n=top_n)
+    
+    matched_song = st.session_state.get("matched_song")
+
+    if matched_song is not None:
+        song_name = matched_song["name"]
+
+    elif selected_song is not None:
+        song_name = catalog.get_song_name(selected_song)
+
+    else:
+        st.warning("Please search and select a song.")
+        st.stop()
+
+    # Run recommender only when needed
+
+    if recommend_local or matched_song is not None:
+
+        recommendations = recommender.recommend(song_name=song_name,n=top_n)
         recommendations = catalog.enrich_recommendations(recommendations)
 
         st.session_state["last_recommendations"] = recommendations
+
+        if matched_song is not None:
+            selected_song_row = matched_song
+        else:
+            selected_song_row = catalog.get_song_row(selected_song)
+
         display_recommendations(recommendations,
                                 songs,
                                 "Content Score",
-                                selected_song=catalog.get_song_row(selected_song),
+                                selected_song=selected_song_row,
                                 recommender_type="content"
-                                )
+                            )
 
     st.markdown("---")
 
@@ -392,37 +552,37 @@ with tab5:
 
     st.markdown("---")
     st.subheader("📈 Recommendation Analytics")
+    if recommendations is not None and not recommendations.empty:
+        col1, col2 = st.columns(2)
 
-    col1, col2 = st.columns(2)
+        with col1:
+            st.altair_chart(
+                RecommendationCharts.artist_distribution(recommendations),
+                use_container_width=True
+            )
 
-    with col1:
-        st.altair_chart(
-            RecommendationCharts.artist_distribution(recommendations),
-            use_container_width=True
-        )
+        with col2:
+            st.altair_chart(
+                RecommendationCharts.year_distribution(recommendations),
+                use_container_width=True
+            )
 
-    with col2:
-        st.altair_chart(
-            RecommendationCharts.year_distribution(recommendations),
-            use_container_width=True
-        )
+        col1, col2 = st.columns(2)
 
-    col1, col2 = st.columns(2)
+        with col1:
+            chart = RecommendationCharts.popularity_distribution(recommendations)
 
-    with col1:
-        chart = RecommendationCharts.popularity_distribution(recommendations)
-
-        if chart is not None:
-            st.altair_chart(chart, use_container_width=True)
-        else:
-            st.info("Popularity information is unavailable for these recommendations.")
+            if chart is not None:
+                st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("Popularity information is unavailable for these recommendations.")
 
 
-    with col2:
-        st.altair_chart(
-            RecommendationCharts.recommendation_scores(recommendations),
-            use_container_width=True
-        )   
+        with col2:
+            st.altair_chart(
+                RecommendationCharts.recommendation_scores(recommendations),
+                use_container_width=True
+            )   
 
 
     # st.subheader("📈 Recommendation Analytics")

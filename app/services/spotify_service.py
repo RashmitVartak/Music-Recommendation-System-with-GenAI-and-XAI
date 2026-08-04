@@ -1,26 +1,78 @@
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from typing import Optional
 
-from app.utils import AUDIO_FEATURES
+from app.spotify.spotify_client import SpotifyClient
 
 
-class FeatureService:
+class SpotifyService:
+    """
+    Business logic layer for Spotify.
+
+    This service hides SpotifyClient from the UI.
+    All Spotify-related operations should go through here.
+    """
 
     def __init__(self):
-        self.scaler = StandardScaler()
+        self.client = SpotifyClient()
 
-    def create_feature_matrix(self, df: pd.DataFrame):
+    def search_song(self, query: str) -> Optional[dict]:
+        """
+        Search for a song on Spotify.
 
-        features = df[AUDIO_FEATURES].copy()
+        Parameters
+        ----------
+        query : str
+            Song title entered by the user.
 
-        features = self.scaler.fit_transform(features)
+        Returns
+        -------
+        dict | None
+            Normalized track information returned by SpotifyClient.
+        """
 
-        return features
+        if not query or not query.strip():
+            return None
 
-    def fit_scaler(self, df):
+        try:
+            return self.client.search_track(query.strip())
 
-        self.scaler.fit(df[AUDIO_FEATURES])
+        except Exception as e:
+            print(f"[SpotifyService] Search Error: {e}")
+            return None
 
-    def transform(self, df):
+    def song_exists(self, query: str) -> bool:
+        """Check whether Spotify can find the song."""
+        result = self.search_song(query)
 
-        return self.scaler.transform(df[AUDIO_FEATURES])
+        return result is not None
+
+    def format_track(self, track: dict) -> dict:
+        """Returns a UI-friendly dictionary."""
+
+        if track is None:
+            return {}
+
+        return {
+            "id": track.get("id"),
+            "name": track.get("name"),
+            "artist": track.get("artist"),
+            "album": track.get("album"),
+            "release_date": track.get("release_date"),
+            "duration_ms": track.get("duration_ms"),
+            "duration": self._format_duration(track.get("duration_ms")),
+            "popularity": track.get("popularity"),
+            "explicit": track.get("explicit"),
+            "album_image": track.get("album_image"),
+            "preview_url": track.get("preview_url"),
+        }
+
+    @staticmethod
+    def _format_duration(duration_ms):
+
+        if duration_ms is None:
+            return "Unknown"
+
+        total_seconds = int(duration_ms / 1000)
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+
+        return f"{minutes}:{seconds:02d}"

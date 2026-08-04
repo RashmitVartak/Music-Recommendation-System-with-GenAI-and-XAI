@@ -1,15 +1,10 @@
 from __future__ import annotations
-
 import logging
 from typing import Optional
-
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 
-from app.config import (
-    SPOTIFY_CLIENT_ID,
-    SPOTIFY_CLIENT_SECRET,
-)
+from app.config import (SPOTIFY_CLIENT_ID,SPOTIFY_CLIENT_SECRET,)
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +28,7 @@ class SpotifyClient:
 
         if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
             raise ValueError("Spotify credentials not found. "
-                            "Please check your .env file."
-                            )
+                            "Please check your .env file.")
 
         auth_manager = SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID,client_secret=SPOTIFY_CLIENT_SECRET,)
 
