@@ -149,6 +149,85 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
 
                         display_xai(selected_song,recommended_song,recommender_type)
 
+def render_content_search(search,spotify,matching,):
+    """
+    Renders the search section for the Content-Based recommender.
+
+    Returns
+    -------
+    selected_song : str | None
+    recommend_local : bool
+    """
+
+    query = st.text_input("🔍 Search Song",placeholder="Type song, artist or album...")
+
+    recommend_local = False
+    selected_song = None
+
+    if query:
+        search_results = search.search(query)
+
+        if search_results.empty:
+            selected_song = spotify_fallback(query=query,
+                                        search=search,
+                                        spotify=spotify,
+                                        matching=matching,
+                                    )
+
+        else:
+            options = search.build_display_names(search_results)
+            selected_song = st.selectbox("Matching Songs", options)
+
+            if selected_song is not None:
+                recommend_local = st.button("🎯 Recommend Songs",key="local_recommend")
+
+    return selected_song, recommend_local
+
+def generate_content_recommendations(selected_song,recommended_local,recommender,catalog,songs,top_n):
+    """
+    Generate recommendations for the Content-Based recommender.
+
+    Handles both:
+    1. Local song selection
+    2. Spotify fallback matched song
+    """
+
+    matched_song = st.session_state.get("matched_song")
+
+    # Decide which song to recommend from
+    if matched_song is not None:
+        song_name = matched_song["name"]
+
+    elif selected_song is not None:
+        song_name = catalog.get_song_name(selected_song)
+
+    else:
+        return
+
+    # Only generate when requested
+
+    if not (recommend_local or matched_song is not None):
+        return
+
+    recommendations = recommender.recommend(song_name=song_name,n=top_n)
+    recommendations = catalog.enrich_recommendations(recommendations)
+
+    st.session_state["last_recommendations"] = recommendations
+
+    # Selected song for XAI
+
+    if matched_song is not None:
+        selected_song_row = matched_song
+    else:
+        selected_song_row = catalog.get_song_row(selected_song)
+
+    display_recommendations(recommendations,
+                            songs,
+                            "Content Score",
+                            selected_song=selected_song_row,
+                            recommender_type="content"
+                        )
+
 def spotify_fallback(query, search, spotify, matching):
     """
     Handles Spotify fallback when a song is not found locally.
@@ -324,72 +403,24 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
 with tab1:
     st.subheader("Content-Based Recommendation")
-    # st.markdown("Find Similar Songs")
     col1, col2 = st.columns([3,1])
 
-    with col1:
-        # selected_song = st.selectbox("Choose a Song",catalog.available_songs())
-       
-        query = st.text_input("🔍 Search Song",placeholder="Type song, artist or album...")
-        recommend_local = False
-
-        search_results = search.search(query)
-
-        if query:
-            if search_results.empty:
-                selected_song = spotify_fallback(query=query,
-                                search=search,
-                                spotify=spotify,
-                                matching=matching,)
-
-            else:
-                options = search.build_display_names(search_results)
-                selected_song = st.selectbox("Matching Songs",options)
-
-                if selected_song is not None:
-                    recommend_local = st.button("🎯 Recommend Songs",key="local_recommend")
-                else:
-                    recommend_local = False
-
-        else:
-            selected_song = None
+    with col1:  
+        selected_song,recommend_local =render_content_search(search=search,
+                                                            spotify=spotify,
+                                                            matching=matching,
+                                                            )
 
     with col2:
         top_n = st.number_input("Top",min_value=5,max_value=20,value=10)
 
-    
-    matched_song = st.session_state.get("matched_song")
-
-    if matched_song is not None:
-        song_name = matched_song["name"]
-
-    elif selected_song is not None:
-        song_name = catalog.get_song_name(selected_song)
-
-    else:
-        st.warning("Please search and select a song.")
-        st.stop()
-
-    # Run recommender only when needed
-
-    if recommend_local or matched_song is not None:
-
-        recommendations = recommender.recommend(song_name=song_name,n=top_n)
-        recommendations = catalog.enrich_recommendations(recommendations)
-
-        st.session_state["last_recommendations"] = recommendations
-
-        if matched_song is not None:
-            selected_song_row = matched_song
-        else:
-            selected_song_row = catalog.get_song_row(selected_song)
-
-        display_recommendations(recommendations,
-                                songs,
-                                "Content Score",
-                                selected_song=selected_song_row,
-                                recommender_type="content"
-                            )
+    generate_content_recommendations(selected_song=selected_song,
+                                     recommended_local=recommend_local,
+                                    recommender=recommender,
+                                    catalog=catalog,
+                                    songs=songs,
+                                    top_n=top_n,
+                                    )
 
     st.markdown("---")
 
