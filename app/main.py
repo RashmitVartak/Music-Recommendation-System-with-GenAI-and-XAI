@@ -24,12 +24,6 @@ def get_catalog_service(songs):
 def get_search_service(songs):
     return SearchService(songs)
 
-def get_spotify_service():
-    return SpotifyService()
-
-def get_matching_service():
-    return MatchingService()
-
 @st.cache_resource
 def get_content_recommender(songs):
     return ContentBasedRecommender(songs)
@@ -64,6 +58,12 @@ def load_spotify_dataset():
 
     return processor
 
+def get_spotify_service():
+    return SpotifyService()
+
+def get_matching_service():
+    return MatchingService()
+
 def display_xai(selected_song, recommended_song, recommender_type):
     if recommender_type == "content":
         explanation = RecommendationExplainer.explain_content(selected_song,recommended_song)
@@ -96,7 +96,6 @@ def display_xai(selected_song, recommended_song, recommender_type):
 
         st.markdown("### 📝 Explanation")
         st.info(explanation["explanation"])
-
 
 
 def display_recommendations(recommendations,songs,score_label="Recommendation Score",selected_song=None,recommender_type=None):
@@ -205,17 +204,16 @@ def generate_content_recommendations(selected_song,recommended_local,recommender
         return
 
     # Only generate when requested
-
-    if not (recommend_local or matched_song is not None):
+    spotify_recommend = st.session_state.pop("spotify_recommend_requested",False)
+    if not (recommend_local or spotify_recommend):
         return
-
+    
     recommendations = recommender.recommend(song_name=song_name,n=top_n)
     recommendations = catalog.enrich_recommendations(recommendations)
 
     st.session_state["last_recommendations"] = recommendations
 
     # Selected song for XAI
-
     if matched_song is not None:
         selected_song_row = matched_song
     else:
@@ -249,36 +247,31 @@ def spotify_fallback(query, search, spotify, matching):
 
     st.success("Song found on Spotify!")
 
-    # Spotify Metadata
-    col1, col2,col3 = st.columns([4,3,3])
+    with st.container(border=True):
+        st.subheader("🎵 Spotify Result")
+        info_col, image_col = st.columns([4,1])
 
-    with col1:
-        st.markdown(f"#### {spotify_track['name']}")
-        
-        # if spotify_track.get("album_image"):
-        #     st.image(
-        #         spotify_track["album_image"],
-        #         use_column_width=True)
+        with info_col:
+            st.markdown(f"## {spotify_track['name']}")
+            st.caption(f"by {spotify_track['artist']}")
+            st.write(f"💿 Album: {spotify_track['album']}")
+            st.write(f"📅 Released: {spotify_track['release_date']}")
+            st.write(f"⏱ Duration: {format_duration(spotify_track['duration_ms'])}")
 
-    with col2:
-        st.markdown(f"**Artist:** {spotify_track['artist']}")
-        st.write(f"**Album:** {spotify_track['album']}")
+            if spotify_track.get("spotify_url"):
+                st.link_button("🎧 Open on Spotify",spotify_track["spotify_url"])
 
-    with col3:
-        st.write(f"**Duration:** {format_duration(spotify_track['duration_ms'])}")
-        st.write(f"**Release Date:** {spotify_track['release_date']}")
+        with image_col:
+            if spotify_track.get("album_image"):
+                st.image(spotify_track["album_image"],width=175)
 
-    # Wait for user action
-    # if not st.button("🎵 Find Similar Songs",key="spotify_match"):
-    #     return None
-
-    btn1, btn2 = st.columns([5,1])
+    btn1, btn2 = st.columns([2,2])
 
     with btn1:
-        find_match = st.button("🎵 Find Similar Songs",key="spotify_match")
+        find_match = st.button("🎵 Find Similar Songs",use_container_width=True,key="spotify_match")
 
     with btn2:
-        recommend = st.button("🎯 Recommend Songs",key="spotify_recommend")
+        recommend = st.button("🎯 Recommend Songs",use_container_width=True,key="spotify_recommend")
 
     if find_match:
         # Stage 1
@@ -297,32 +290,78 @@ def spotify_fallback(query, search, spotify, matching):
         #         ]
         #     )
 
-        # Stage 2
 
+        # Stage 2
         matches = matching.find_best_match(spotify_track,candidates)
 
         if matches.empty:
-            st.error("No confident match found in local recommendation catalog.")
+
+            st.warning("No high-confidence match found.")
+            candidates = candidates.head(5)
+
+            choice = st.selectbox("Choose the closest song",
+                candidates["name"] + " — " + candidates["artists"]
+            )
+
+            if st.button("Use Selected Song",key="manual_match"):
+                selected = candidates[(candidates["name"] + " — " + candidates["artists"]) == choice]
+
+                row = selected.iloc[0]
+                st.session_state["matched_song"] = row
+                st.rerun()
+
             return None
 
-        st.success(f"Matched with: {matches.iloc[0]['name']}")
+        else:
+            # Keep the top 3 matches
+            top_matches = matches.head(3).copy()
 
-        with st.expander("Matched Songs"):
-            st.dataframe(matches[["name","artists","matching_score"]])
+            # Store them so they remain visible after Streamlit reruns
+            st.session_state["spotify_matches"] = top_matches
+            st.subheader("🎵 Closest Local Matches")
 
-        st.session_state["matched_song"] = matches.iloc[0]
+            for rank, (_, match) in enumerate(top_matches.iterrows(), start=1):
+                with st.container(border=True):
+                    col1, col2 = st.columns([4, 1])
 
-    # Return the matched LOCAL song
-    # return matches.iloc[0]["name"]
+                    with col1:
+                        st.markdown(f"### {rank}. {match['name']}")
+                        st.caption(match["artists"])
+
+                        st.write(f"🎯 Matching Confidence: "
+                            f"{match['matching_score'] * 100:.1f}%")
+
+                    with col2:
+                        score = match["matching_score"]
+
+                        if score >= 0.95:
+                            st.success("Excellent")
+                        elif score >= 0.85:
+                            st.info("Good")
+                        else:
+                            st.warning("Moderate")
 
     if recommend:
+
         matched_song = st.session_state.get("matched_song")
+        # If user has not manually selected a match,
+        # use the best of the 3 displayed matches.
         if matched_song is None:
-            st.warning("Please click 'Find Similar Songs' first.")
-            return None
+            spotify_matches = st.session_state.get("spotify_matches")
+
+            if spotify_matches is None or spotify_matches.empty:
+                st.info("Find a local match before generating recommendations.")
+
+                return None
+
+            matched_song = spotify_matches.iloc[0]
+
+            st.session_state["matched_song"] = matched_song
+
+        # Tell generate_content_recommendations() that the user actually clicked Recommend Songs.
+        st.session_state["spotify_recommend_requested"] = True
 
         return matched_song["name"]
-
 
 
    
@@ -337,8 +376,8 @@ if "last_recommendations" not in st.session_state:
     st.session_state["last_recommendations"] = None
 
 # Sidebar
-st.sidebar.title("Navigation")
-st.sidebar.success("Hybrid Music Recommendation System")
+# st.sidebar.title("Navigation")
+# st.sidebar.success("Hybrid Music Recommendation System")
 
 # Title
 st.title("Music Recommendation System with GenAI & XAI")
@@ -403,10 +442,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
 with tab1:
     st.subheader("Content-Based Recommendation")
-    col1, col2 = st.columns([3,1])
+    col1, col2 = st.columns([5,1])
 
     with col1:  
-        selected_song,recommend_local =render_content_search(search=search,
+        selected_song,recommend_local = render_content_search(search=search,
                                                             spotify=spotify,
                                                             matching=matching,
                                                             )
@@ -414,15 +453,17 @@ with tab1:
     with col2:
         top_n = st.number_input("Top",min_value=5,max_value=20,value=10)
 
-    generate_content_recommendations(selected_song=selected_song,
-                                     recommended_local=recommend_local,
-                                    recommender=recommender,
-                                    catalog=catalog,
-                                    songs=songs,
-                                    top_n=top_n,
-                                    )
-
     st.markdown("---")
+
+    generate_content_recommendations(selected_song=selected_song,
+                                            recommended_local=recommend_local,
+                                            recommender=recommender,
+                                            catalog=catalog,
+                                            songs=songs,
+                                            top_n=top_n,
+                                            )
+
+    st.markdown("---")   
 
 
 

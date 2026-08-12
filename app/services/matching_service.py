@@ -10,7 +10,7 @@ class MatchingService:
     def __init__(self):
         pass
 
-    MIN_MATCH_SCORE = 0.85
+    MIN_MATCH_SCORE = 0.75
 
     @staticmethod
     def similarity(a: str, b: str) -> float:
@@ -80,8 +80,11 @@ class MatchingService:
             .values
         )
 
-        best = best[best["matching_score"] >= self.MIN_MATCH_SCORE]
-        if best.empty:
-            return best
-        
+        confident_matches = best[best["matching_score"] >= self.MIN_MATCH_SCORE]
+
+        if not confident_matches.empty:
+            return confident_matches.reset_index(drop=True)
+
+        # No confident matches
+        # Return the top ranked songs anyway
         return best.reset_index(drop=True)
