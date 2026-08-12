@@ -476,3 +476,17 @@ Workflow:
 
 
 
+Q)If the interviewer asks me about the working of collaborative...
+"How does your collaborative recommender work?"
+
+Don't give the overly simplified:
+A listens to X and Y, B listens to X, so recommend Y.
+
+Instead say:
+"I use implicit user-item interaction data, where each interaction contains a user, song, and listen count. I construct a song-user interaction matrix and represent each song by its listening pattern across users. I then use cosine similarity between these vectors to identify songs with similar user-consumption patterns. For example, if two songs are frequently listened to by similar users, their vectors will be similar and one can be recommended when the other is selected."
+
+Q)"Why did you use multiple recommendation techniques?"
+
+"I used three complementary approaches. Content-based filtering works on the audio characteristics of a song and therefore provides broad coverage. Collaborative filtering uses historical user-listening behavior and can capture patterns that audio similarity cannot. Hybrid combines both signals when both are available. 
+
+However, because the collaborative interaction dataset has much lower coverage than the content catalog, I designed the system so that it falls back to content-based recommendations rather than forcing a collaborative or hybrid recommendation when sufficient interaction data isn't available."

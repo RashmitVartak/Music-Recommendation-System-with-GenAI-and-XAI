@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
@@ -39,6 +40,119 @@ class CollaborativeRecommender:
             return None
 
         return result.iloc[0]["song_id"]
+
+    def resolve_song_id(self, song_name, artist_name=""):
+        """
+        Resolve a Spotify/Content song to the corresponding
+        song_id in the Collaborative dataset.
+        """
+
+        if not song_name:
+            return None
+
+        title = str(song_name).lower().strip()
+        artist = str(artist_name).lower().strip()
+
+        # ---------------------------------
+        # 1. Exact title + artist
+        # ---------------------------------
+
+        title_series = (
+            self.dataset["title"]
+            .fillna("")
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
+
+        artist_series = (
+            self.dataset["artist_name"]
+            .fillna("")
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
+
+        exact_mask = title_series.eq(title)
+
+        if artist:
+            exact_mask &= artist_series.eq(artist)
+
+        result = self.dataset[exact_mask]
+
+        if not result.empty:
+            return result.iloc[0]["song_id"]
+
+        # ---------------------------------
+        # 2. Normalize titles
+        # ---------------------------------
+
+        def normalize_title(value):
+            value = str(value).lower().strip()
+
+            # Remove remaster / remastered / live version suffixes
+            value = re.sub(
+                r"\s*[-–—]\s*(?:\d{4}\s+)?remaster(?:ed)?\b.*$",
+                "",
+                value,
+            )
+
+            value = re.sub(
+                r"\s*[-–—]\s*live\b.*$",
+                "",
+                value,
+            )
+
+            # Remove parenthetical remaster/live information
+            value = re.sub(
+                r"\s*\([^)]*(?:remaster|remastered|live)[^)]*\)",
+                "",
+                value,
+            )
+
+            # Normalize punctuation and whitespace
+            value = re.sub(r"[^\w\s]", " ", value)
+            value = re.sub(r"\s+", " ", value)
+
+            return value.strip()
+
+        normalized_input = normalize_title(title)
+
+        dataset_normalized_titles = (
+            self.dataset["title"]
+            .fillna("")
+            .astype(str)
+            .apply(normalize_title)
+        )
+
+        # ---------------------------------
+        # 3. Normalized title + artist
+        # ---------------------------------
+
+        normalized_mask = dataset_normalized_titles.eq(
+            normalized_input
+        )
+
+        if artist:
+            normalized_mask &= artist_series.eq(artist)
+
+        result = self.dataset[normalized_mask]
+
+        if not result.empty:
+            return result.iloc[0]["song_id"]
+
+        # ---------------------------------
+        # 4. Normalized title only
+        # ---------------------------------
+
+        result = self.dataset[
+            dataset_normalized_titles.eq(normalized_input)
+        ]
+
+        if not result.empty:
+            return result.iloc[0]["song_id"]
+
+        return None
     
     def normalize_scores(self,scores):
 
