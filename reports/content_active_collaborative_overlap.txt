@@ -1,0 +1,30 @@
+======================================================================
+DATASET SIZES
+======================================================================
+Content dataset       : 312,232
+Song metadata         : 1,000,000
+Triplet interactions  : 1,048,575
+
+======================================================================
+COLLABORATIVE ACTIVE SONGS
+======================================================================
+Unique songs in triplets       : 10,000
+Active songs in song_data      : 10,269
+
+======================================================================
+CONTENT ↔ ACTIVE COLLABORATIVE OVERLAP
+======================================================================
+Unique Content songs              : 309,478
+Active Collaborative songs        : 9,968
+Songs present in BOTH              : 3,897
+
+Content songs with collaborative interactions : 1.26%
+Active collaborative songs also in Content       : 39.10%
+
+======================================================================
+COVERAGE INTERPRETATION
+======================================================================
+This measures the songs that can actually participate in Collaborative recommendations.
+
+Content-only songs                    : 305,581
+Collaborative-active-only songs      : 6,071

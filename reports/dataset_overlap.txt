@@ -1,0 +1,49 @@
+======================================================================
+DATASET SIZES
+======================================================================
+Content dataset       : 312,232
+Collaborative dataset : 1,000,000
+
+======================================================================
+CONTENT ↔ COLLABORATIVE OVERLAP
+======================================================================
+Unique Content songs          : 309,478
+Unique Collaborative songs    : 913,389
+Songs in both datasets        : 35,528
+
+Content covered by Collaborative : 11.48%
+Collaborative covered by Content : 3.89%
+
+======================================================================
+SAMPLE OVERLAPPING SONGS
+======================================================================
+i m going to be a teenage idol || elton john
+my place || nelly
+on a carousel || the hollies
+for the cool in you || babyface
+man on the run || dash berlin
+can we ride || lil rob
+head above water || daryl hall and john oates
+the world is a ghetto || war
+patterns || devo
+insatiable || helmet
+hell bent for leather || judas priest
+beggin || frankie valli and the four seasons
+dos días en la vida || jarabe de palo
+strange brew || cream
+labor || aesop rock
+fuga nº ii || os mutantes
+buried alive || mercyful fate
+swing brother swing || billie holiday
+black gives way to blue || alice in chains
+the decline || nofx
+
+======================================================================
+CONTENT-ONLY
+======================================================================
+Songs only in Content : 273,950
+
+======================================================================
+COLLABORATIVE-ONLY
+======================================================================
+Songs only in Collaborative : 877,861
