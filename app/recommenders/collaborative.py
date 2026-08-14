@@ -31,39 +31,11 @@ class CollaborativeRecommender:
         self.sparse_matrix = csr_matrix(self.song_user_matrix.values)
 
     def available_songs(self):
-        """Returns formatted song names for dropdown."""
+        return sorted(self.dataset["title"].dropna().unique())
 
-        songs = self.dataset[
-            ["title", "artist_name", "year"]
-        ].copy()
-
-        songs["display_name"] = songs.apply(
-            lambda row: (
-                f"{row['title']} — {row['artist_name']} "
-                f"({int(row['year']) if pd.notna(row['year']) else 'Unknown'})"
-            ),
-            axis=1
-        )
-
-        return sorted(songs["display_name"].tolist())
 
     def get_song_id(self, song_name):
-
-        songs = self.dataset[
-            ["song_id", "title", "artist_name", "year"]
-        ].drop_duplicates("song_id").copy()
-
-        songs["display_name"] = songs.apply(
-            lambda row: (
-                f"{row['title']} — {row['artist_name']} "
-                f"({int(row['year']) if pd.notna(row['year']) else 'Unknown'})"
-            ),
-            axis=1
-        )
-
-        result = songs[
-            songs["display_name"].str.lower() == song_name.lower()
-        ]
+        result = self.dataset[self.dataset["title"].str.lower()== song_name.lower()]
 
         if result.empty:
             return None

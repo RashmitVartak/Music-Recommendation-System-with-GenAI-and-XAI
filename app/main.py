@@ -58,6 +58,10 @@ def load_spotify_dataset():
 
     return processor
 
+@st.cache_data
+def get_content_song_options(_catalog):
+    return _catalog.available_songs()
+
 def get_spotify_service():
     return SpotifyService()
 
@@ -96,6 +100,7 @@ def display_xai(selected_song, recommended_song, recommender_type):
 
         st.markdown("### 📝 Explanation")
         st.info(explanation["explanation"])
+
 
 def display_recommendations(recommendations,songs,score_label="Recommendation Score",selected_song=None,recommender_type=None):
 
@@ -147,7 +152,7 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
 
                         display_xai(selected_song,recommended_song,recommender_type)
 
-def render_content_search(search,spotify,matching,catalog,):
+def render_content_search(search,spotify,matching,):
     """
     Renders the search section for the Content-Based recommender.
 
@@ -174,21 +179,148 @@ def render_content_search(search,spotify,matching,catalog,):
 
         else:
             options = search.build_display_names(search_results)
-            options = catalog.format_songs(search_results)
-
-            # # Get formatted names from CatalogService
-            # all_songs = catalog.available_songs()
-
-            # # Keep only dropdown options matching the typed text
-            # query_lower = query.lower().strip()
-            # options = [song for song in all_songs if query_lower in song.lower()]
-
-            selected_song = st.selectbox("Matching Songs", options,key="content_song")
+            selected_song = st.selectbox("Matching Songs", options)
 
             if selected_song is not None:
                 recommend_local = st.button("🎯 Recommend Songs",key="local_recommend")
 
     return selected_song, recommend_local
+
+# def render_collaborative_ui(collaborative, catalog, songs):
+
+#     st.subheader("👥 Collaborative Recommendation")
+
+#     song = st.selectbox("Choose a Song",collaborative.available_songs(),key="collab_song")    
+#     top_n = st.slider("Number of Recommendations",5,20,10,key="collab_slider")
+
+#     if st.button("Recommend", key="collab_button"):
+
+#         recommendations = collaborative.recommend(song,top_n)
+#         recommendations = catalog.enrich_recommendations(recommendations)
+
+#         st.session_state["last_recommendations"] = recommendations
+
+#         if recommendations is None or recommendations.empty:
+#             st.error("No collaborative recommendations found for this song.")
+
+#         else:
+#             display_recommendations(recommendations,songs,"Collaborative Score",recommender_type="collaborative")
+
+def render_collaborative_search(collaborative, catalog,songs):
+    """
+    Handles song search and Collaborative recommendation
+    availability.
+    """
+
+    query = st.text_input("🔍 Search Song",placeholder="Type song or artist...",key="collab_search")
+    top_n = st.slider("Number of Recommendations",5,20,10,key="collab_slider")
+
+    if not query:
+        return
+
+    # Search Collaborative catalog
+    search_results = collaborative.dataset[
+        collaborative.dataset["title"]
+        .str.contains(
+            query,
+            case=False,
+            na=False,
+            regex=False
+        )
+    ].drop_duplicates("song_id")
+
+    if search_results.empty:
+        st.warning("⚠️ This song is not available in the Collaborative dataset.")
+        return
+
+    # Let user select the song
+    options = (
+        search_results["title"]
+        + " — "
+        + search_results["artist_name"]
+    ).tolist()
+
+    selected = st.selectbox("Matching Songs",options,key="collab_matching_song")
+    selected_row = search_results[
+        (
+            search_results["title"]
+            + " — "
+            + search_results["artist_name"]
+        ) == selected
+    ].iloc[0]
+
+    song_id = selected_row["song_id"]
+
+    # Check actual interaction availability
+    if not collaborative.has_interactions(song_id):
+        st.warning("⚠️ Collaborative recommendations are not available for this song because there is no user-listening interaction data.")
+        return
+
+    st.success("✅ Collaborative data available")
+
+    if st.button("👥 Recommend Songs",key="collab_button"):
+
+        recommendations = collaborative.recommend_by_id(song_id,n=top_n)
+
+        if recommendations is None or recommendations.empty:
+            st.warning("No Collaborative recommendations found.")
+            return
+
+        recommendations = catalog.enrich_recommendations(recommendations)
+
+        st.session_state["last_recommendations"] = recommendations
+
+        display_recommendations(
+            recommendations,
+            catalog.songs if hasattr(catalog, "songs") else pd.DataFrame(),
+            "Collaborative Score",
+            recommender_type="collaborative"
+        )
+
+def render_hybrid_ui(hybrid, catalog, songs):
+
+    st.subheader("⭐ Hybrid Recommendation")
+
+    song_options= get_content_song_options(catalog)
+    song = st.selectbox("Choose Song",song_options,index=None,placeholder="Type song, artist or album...",key="hybrid_song")
+    top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
+
+    content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1,key="content_weight")
+    collaborative_weight = 1 - content_weight
+
+    hybrid.set_weights(content_weight,collaborative_weight)
+
+    st.caption(
+        f"Content: {content_weight:.1f} | "
+        f"Collaborative: {collaborative_weight:.1f}"
+    )
+
+    if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
+        if song is None:
+            st.warning("Please select a song first.")
+            return
+        
+        recommendations = hybrid.recommend(song_name=catalog.get_song_name(song),
+                                           top_n=top_n)
+
+        if recommendations is None or recommendations.empty:
+            st.error("No hybrid recommendations found for this song.")
+
+            return
+
+        recommendations = catalog.enrich_recommendations(recommendations)
+
+        st.session_state["last_recommendations"] = recommendations
+
+        selected_song_row = catalog.get_song_row(song)
+
+        display_recommendations(recommendations,
+                                songs,
+                                "Hybrid Score",
+                                selected_song=selected_song_row,
+                                recommender_type="hybrid"
+                            )
+
 
 def generate_content_recommendations(selected_song,recommended_local,recommender,catalog,songs,top_n):
     """
@@ -233,6 +365,7 @@ def generate_content_recommendations(selected_song,recommended_local,recommender
                             selected_song=selected_song_row,
                             recommender_type="content"
                         )
+
 
 def spotify_fallback(query, search, spotify, matching):
     """
@@ -456,7 +589,6 @@ with tab1:
         selected_song,recommend_local = render_content_search(search=search,
                                                             spotify=spotify,
                                                             matching=matching,
-                                                            catalog=catalog,
                                                             )
 
     with col2:
@@ -475,7 +607,9 @@ with tab1:
     st.markdown("---")   
 
 
+
 with tab2:
+
     st.subheader("🔥 Most Popular Songs")
 
     top_n = st.slider("Top Songs",5,20,10,key="popular_slider")
@@ -487,62 +621,65 @@ with tab2:
                             recommender_type="popularity"
                             )
 
+
+# with tab3:
+
+#     render_collaborative_ui(
+#         collaborative=collaborative,
+#         catalog=catalog,
+#         songs=songs
+#     )
+
 with tab3:
+
     st.subheader("👥 Collaborative Recommendation")
 
-    song = st.selectbox("Choose a Song",collaborative.available_songs(),key="collab_song")
-    top_n = st.slider("Number of Recommendations",5,20,10,key="collab_slider")
+    render_collaborative_search(
+        collaborative=collaborative,
+        catalog=catalog,
+        songs=songs
+    )
 
-    if st.button("Recommend", key="collab_button"):
+# with tab4:
 
-        recommendations = collaborative.recommend(song, top_n)
-        recommendations = catalog.enrich_recommendations(recommendations)
+#     st.subheader("⭐ Hybrid Recommendation")
 
-        st.session_state["last_recommendations"] = recommendations
-        if recommendations is None or recommendations.empty:
+#     song = st.selectbox("Choose Song",catalog.available_songs(),key="hybrid_song")
 
-            st.error("No collaborative recommendations found for this song.")
+#     top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
+#     content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1)
 
-        else:
+#     collaborative_weight = 1 - content_weight
+#     hybrid.set_weights(content_weight,collaborative_weight)
 
-            display_recommendations(recommendations,
-                                    songs,
-                                    "Collaborative Score",
-                                    recommender_type="collaborative"
-                                )
+#     st.write(f"Content : {content_weight:.1f}")
+#     st.write(f"Collaborative : {collaborative_weight:.1f}")
+
+#     if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
+        
+#         recommendations = hybrid.recommend(song_name=catalog.get_song_name(song),top_n=top_n)
+#         recommendations = catalog.enrich_recommendations(recommendations)
+         
+#         st.session_state["last_recommendations"] = recommendations
+        
+#         if recommendations is None:
+#             st.error("No recommendations found.")
+
+#         else:
+#             display_recommendations(recommendations,
+#                                     songs,
+#                                     "Hybrid Score",
+#                                     selected_song=catalog.get_song_row(song),
+#                                     recommender_type="hybrid"
+#                                     )
 
 with tab4:
 
-    st.subheader("⭐ Hybrid Recommendation")
-
-    song = st.selectbox("Choose Song",catalog.available_songs(),key="hybrid_song")
-
-    top_n = st.slider("Number of Recommendations",5,20,10,key="hybrid_slider")
-    content_weight = st.slider("Content Weight",0.0,1.0,0.6,0.1)
-
-    collaborative_weight = 1 - content_weight
-    hybrid.set_weights(content_weight,collaborative_weight)
-
-    st.write(f"Content : {content_weight:.1f}")
-    st.write(f"Collaborative : {collaborative_weight:.1f}")
-
-    if st.button("Generate Hybrid Recommendations",key="hybrid_button"):
-        
-        recommendations = hybrid.recommend(song_name=catalog.get_song_name(song),top_n=top_n)
-        recommendations = catalog.enrich_recommendations(recommendations)
-         
-        st.session_state["last_recommendations"] = recommendations
-        
-        if recommendations is None:
-            st.error("No recommendations found.")
-
-        else:
-            display_recommendations(recommendations,
-                                    songs,
-                                    "Hybrid Score",
-                                    selected_song=catalog.get_song_row(song),
-                                    recommender_type="hybrid"
-                                    )
+    render_hybrid_ui(
+        hybrid=hybrid,
+        catalog=catalog,
+        songs=songs
+    )
 
 with tab5:
 
