@@ -97,7 +97,6 @@ def display_xai(selected_song, recommended_song, recommender_type):
         st.markdown("### 📝 Explanation")
         st.info(explanation["explanation"])
 
-
 def display_recommendations(recommendations,songs,score_label="Recommendation Score",selected_song=None,recommender_type=None):
 
     if recommendations is None or recommendations.empty:
@@ -148,7 +147,7 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
 
                         display_xai(selected_song,recommended_song,recommender_type)
 
-def render_content_search(search,spotify,matching,):
+def render_content_search(search,spotify,matching,catalog,):
     """
     Renders the search section for the Content-Based recommender.
 
@@ -175,7 +174,16 @@ def render_content_search(search,spotify,matching,):
 
         else:
             options = search.build_display_names(search_results)
-            selected_song = st.selectbox("Matching Songs", options)
+            options = catalog.format_songs(search_results)
+
+            # # Get formatted names from CatalogService
+            # all_songs = catalog.available_songs()
+
+            # # Keep only dropdown options matching the typed text
+            # query_lower = query.lower().strip()
+            # options = [song for song in all_songs if query_lower in song.lower()]
+
+            selected_song = st.selectbox("Matching Songs", options,key="content_song")
 
             if selected_song is not None:
                 recommend_local = st.button("🎯 Recommend Songs",key="local_recommend")
@@ -448,6 +456,7 @@ with tab1:
         selected_song,recommend_local = render_content_search(search=search,
                                                             spotify=spotify,
                                                             matching=matching,
+                                                            catalog=catalog,
                                                             )
 
     with col2:
@@ -466,9 +475,7 @@ with tab1:
     st.markdown("---")   
 
 
-
 with tab2:
-
     st.subheader("🔥 Most Popular Songs")
 
     top_n = st.slider("Top Songs",5,20,10,key="popular_slider")
@@ -480,28 +487,29 @@ with tab2:
                             recommender_type="popularity"
                             )
 
-
 with tab3:
-
     st.subheader("👥 Collaborative Recommendation")
 
     song = st.selectbox("Choose a Song",collaborative.available_songs(),key="collab_song")
     top_n = st.slider("Number of Recommendations",5,20,10,key="collab_slider")
 
-    if st.button("Recommend",key="collab_button"):
-        recommendations = collaborative.recommend(song,top_n)
-        recommendations = catalog.enrich_recommendations(recommendations)
-        st.session_state["last_recommendations"] = recommendations
+    if st.button("Recommend", key="collab_button"):
 
-        if recommendations is None:
-            st.error("Song not found.")
+        recommendations = collaborative.recommend(song, top_n)
+        recommendations = catalog.enrich_recommendations(recommendations)
+
+        st.session_state["last_recommendations"] = recommendations
+        if recommendations is None or recommendations.empty:
+
+            st.error("No collaborative recommendations found for this song.")
 
         else:
+
             display_recommendations(recommendations,
                                     songs,
                                     "Collaborative Score",
                                     recommender_type="collaborative"
-                                    )
+                                )
 
 with tab4:
 

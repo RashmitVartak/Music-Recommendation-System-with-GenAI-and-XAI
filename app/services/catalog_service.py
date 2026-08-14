@@ -50,6 +50,14 @@ class CatalogService:
 
         return sorted(self.catalog["display_name"].tolist())
 
+    def format_songs(self, songs: pd.DataFrame):
+        """Returns formatted display names for a filtered song DataFrame."""
+
+        return [
+            self._format_display_name(row)
+            for _, row in songs.iterrows()
+        ]
+
     def get_song(self, display_name):
         """Returns complete song information."""
 

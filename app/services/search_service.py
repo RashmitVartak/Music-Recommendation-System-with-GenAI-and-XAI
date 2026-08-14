@@ -48,13 +48,13 @@ class SearchService:
         starts = (df["_name_lower"].str.startswith(query) & (~exact))
         df.loc[starts, "priority"] = 2
 
-        # Contains title
-        contains = (df["_name_lower"].str.contains(query, na=False) & (~exact) & (~starts))
-        df.loc[contains, "priority"] = 3
-
         # Artist
         artist = (df["_artist_lower"].str.contains(query, na=False) & (df["priority"] == 999))
-        df.loc[artist, "priority"] = 4
+        df.loc[artist, "priority"] = 3
+    
+        # Contains title
+        contains = (df["_name_lower"].str.contains(query, na=False) & (~exact) & (~starts))
+        df.loc[contains, "priority"] = 4
 
         # Album
         album = (df["_album_lower"].str.contains(query, na=False) & (df["priority"] == 999))

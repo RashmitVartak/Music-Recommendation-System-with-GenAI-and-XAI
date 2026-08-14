@@ -31,15 +31,50 @@ class CollaborativeRecommender:
         self.sparse_matrix = csr_matrix(self.song_user_matrix.values)
 
     def available_songs(self):
-        return sorted(self.dataset["title"].dropna().unique())
+        """Returns formatted song names for dropdown."""
+
+        songs = self.dataset[
+            ["title", "artist_name", "year"]
+        ].copy()
+
+        songs["display_name"] = songs.apply(
+            lambda row: (
+                f"{row['title']} — {row['artist_name']} "
+                f"({int(row['year']) if pd.notna(row['year']) else 'Unknown'})"
+            ),
+            axis=1
+        )
+
+        return sorted(songs["display_name"].tolist())
 
     def get_song_id(self, song_name):
-        result = self.dataset[self.dataset["title"].str.lower()== song_name.lower()]
+
+        songs = self.dataset[
+            ["song_id", "title", "artist_name", "year"]
+        ].drop_duplicates("song_id").copy()
+
+        songs["display_name"] = songs.apply(
+            lambda row: (
+                f"{row['title']} — {row['artist_name']} "
+                f"({int(row['year']) if pd.notna(row['year']) else 'Unknown'})"
+            ),
+            axis=1
+        )
+
+        result = songs[
+            songs["display_name"].str.lower() == song_name.lower()
+        ]
 
         if result.empty:
             return None
 
         return result.iloc[0]["song_id"]
+
+    def has_interactions(self, song_id):
+        return (
+            song_id is not None
+            and song_id in self.song_user_matrix.index
+        )
 
     def resolve_song_id(self, song_name, artist_name=""):
         """
@@ -53,10 +88,7 @@ class CollaborativeRecommender:
         title = str(song_name).lower().strip()
         artist = str(artist_name).lower().strip()
 
-        # ---------------------------------
         # 1. Exact title + artist
-        # ---------------------------------
-
         title_series = (
             self.dataset["title"]
             .fillna("")
@@ -83,10 +115,7 @@ class CollaborativeRecommender:
         if not result.empty:
             return result.iloc[0]["song_id"]
 
-        # ---------------------------------
         # 2. Normalize titles
-        # ---------------------------------
-
         def normalize_title(value):
             value = str(value).lower().strip()
 
@@ -125,14 +154,8 @@ class CollaborativeRecommender:
             .apply(normalize_title)
         )
 
-        # ---------------------------------
         # 3. Normalized title + artist
-        # ---------------------------------
-
-        normalized_mask = dataset_normalized_titles.eq(
-            normalized_input
-        )
-
+        normalized_mask = dataset_normalized_titles.eq(normalized_input)
         if artist:
             normalized_mask &= artist_series.eq(artist)
 
@@ -141,23 +164,64 @@ class CollaborativeRecommender:
         if not result.empty:
             return result.iloc[0]["song_id"]
 
-        # ---------------------------------
         # 4. Normalized title only
-        # ---------------------------------
-
-        result = self.dataset[
-            dataset_normalized_titles.eq(normalized_input)
-        ]
-
+        result = self.dataset[dataset_normalized_titles.eq(normalized_input)]
         if not result.empty:
             return result.iloc[0]["song_id"]
 
         return None
-    
+
+    def recommend_by_id(self, song_id, n=10):
+        """
+        Generate collaborative recommendations using
+        an already-resolved Collaborative song_id.
+        """
+
+        if (song_id is None or song_id not in self.song_user_matrix.index):
+            return pd.DataFrame(
+                columns=[ "id","name","artists","year","popularity","score","source"]
+               )
+
+        # Get the row position of the selected song
+        idx = self.song_user_matrix.index.get_loc(song_id)
+
+        # Calculate similarity against all songs
+        similarity_scores = cosine_similarity(self.sparse_matrix[idx],self.sparse_matrix
+                                            ).flatten()
+
+        # Get top N similar songs
+        similar_indices = (similarity_scores.argsort()[::-1]
+                            )[1:n + 1]
+
+        similar_song_ids = (self.song_user_matrix.index[similar_indices])
+
+        # Get metadata for those songs
+        recommendations = (
+            self.dataset[self.dataset["song_id"].isin(similar_song_ids)]
+            .drop_duplicates("song_id")
+            .copy()
+        )
+
+        recommendations["score"] = (similarity_scores[similar_indices])
+
+        recommendations["score"] = (
+            self.normalize_scores(recommendations["score"]).round(3)
+        )
+
+        recommendations["popularity"] = None
+        recommendations["source"] = "Collaborative"
+
+        return recommendations[
+                [ "song_id","title","artist_name","year","popularity","score","source"]
+            ].rename(
+            columns={"song_id": "id",
+                    "title": "name",
+                    "artist_name": "artists",}
+        )
+
     def normalize_scores(self,scores):
 
         scores = pd.Series(scores)
-
         if scores.max() == scores.min():
 
             return pd.Series(
@@ -170,7 +234,6 @@ class CollaborativeRecommender:
             /
             (scores.max() - scores.min())
         )
-
 
     def recommend(self,song_name,n=10):
 

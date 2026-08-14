@@ -20,27 +20,22 @@ collaborative = CollaborativeRecommender(
 #     "Hotel California",]
 
 test_cases = [
+    ("21 Guns [feat. Green Day & The Cast Of American Idiot] (Album Version)", "Green Day"),
     ("Hotel California", "Eagles"),
-    ("Hotel California - 2013 Remaster", "Eagles"),
-    ("Hotel California - Live; 1999 Remaster", "Eagles"),
-
-    ("Bohemian Rhapsody", "Queen"),
-    ("Bohemian Rhapsody - Remastered", "Queen"),
-
-    ("Sweet Child O' Mine", "Guns N' Roses"),
-    ("Sweet Child O' Mine - Live", "Guns N' Roses"),
+    ("Believer", "Imagine Dragons"),
 ]
 
+for song_name, artist_name in test_cases:
 
-for title, artist in test_cases:
-    song_id = collaborative.resolve_song_id(title,artist)
+    song_id = collaborative.resolve_song_id(
+        song_name,
+        artist_name
+    )
+
+    has_interactions = collaborative.has_interactions(song_id)
 
     print("=" * 60)
-    print("Title :", title)
-    print("Artist:", artist)
+    print("Song:", song_name)
+    print("Artist:", artist_name)
     print("Resolved song_id:", song_id)
-
-    if song_id:
-        print("✅ FOUND")
-    else:
-        print("❌ NOT FOUND")
+    print("Has interactions:", has_interactions)
