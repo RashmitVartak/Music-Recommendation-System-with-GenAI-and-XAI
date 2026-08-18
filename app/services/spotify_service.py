@@ -36,7 +36,6 @@ class SpotifyService:
             return self.client.search_track(query.strip())
 
         except Exception as e:
-            print(f"[SpotifyService] Search Error: {e}")
             return None
 
     def song_exists(self, query: str) -> bool:

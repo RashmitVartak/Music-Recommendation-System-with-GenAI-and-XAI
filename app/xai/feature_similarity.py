@@ -41,11 +41,6 @@ class FeatureSimilarity:
                 "Difference": round(abs(value1 - value2), 3)
             })
 
-        #DEBUG
-        # print("Song1 keys:", song1.index.tolist())
-        # print("Song2 keys:", song2.index.tolist())
-        # print("Comparisons:", comparisons)
-
         comparison_df = pd.DataFrame(comparisons)
         comparison_df = comparison_df.sort_values("Difference")
 
@@ -97,10 +92,10 @@ class FeatureSimilarity:
 
         similarities = []
 
-        for _, row in comparison.iterrows():
+        for row in comparison.itertuples(index=False):
 
-            feature = row["Feature"]
-            difference = row["Difference"]
+            feature = row.Feature
+            difference = row.Difference
 
             if feature == "tempo":
                 similarity = max(0, 100 - (difference / 200) * 100)

@@ -18,7 +18,7 @@ class CatalogService:
         self.catalog = self.songs.copy()
         self.catalog["df_index"] = self.catalog.index
         self.catalog["display_name"] = self.catalog.apply(
-            lambda row: self._format_display_name(row),
+            self._format_display_name,
             axis=1
         )
 

@@ -42,17 +42,23 @@ class HybridRecommender:
         return df
     
     def recommend(self,song_name,top_n=10):
-        content = self.content.recommend(song_name,top_n * 2)
-        collaborative = self.collaborative.recommend(song_name,top_n * 2)
 
-        if content.empty and collaborative.empty:
-            return None
+        candidate_n=top_n*2
 
-        if content.empty:
-            collaborative["source"] = "Hybrid"
-            return collaborative.head(top_n)
+        content = self.content.recommend(song_name,candidate_n)
+        if content is None or content.empty:
+             return None
 
-        if collaborative.empty:
+        song_id=self.collaborative.get_song_id(song_name)
+        if (song_id is None 
+            or not self.self.collaborative.has_interactions(song_id)):
+            content["source"]="Hybrid"
+
+            return content.head(top_n)
+        
+        collaborative = self.collaborative.recommend_by_id(song_id,candidate_n)
+
+        if collaborative is None or collaborative.empty:
             content["source"] = "Hybrid"
             return content.head(top_n)
 

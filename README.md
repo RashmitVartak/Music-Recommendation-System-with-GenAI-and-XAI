@@ -493,3 +493,7 @@ However , because the collaborative interaction dataset has much lower coverage 
 
 
 "I optimized the hybrid pipeline by checking collaborative availability before invoking the collaborative recommender. Since the collaborative dataset has limited active-song coverage, this avoids unnecessary computation for songs that cannot participate in collaborative recommendation. For songs with interactions, both recommenders contribute to the weighted hybrid score."
+
+
+In recommend()
+"Because my collaborative dataset only covers a small subset of the content catalog, I added an availability check before invoking collaborative recommendation. This prevents unnecessary collaborative computation for songs that cannot produce collaborative recommendations, while retaining the full hybrid pipeline for songs with interaction data."

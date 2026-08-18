@@ -15,7 +15,7 @@ from app.services.search_service import SearchService
 from app.services.spotify_service import SpotifyService
 from app.services.matching_service import MatchingService
 
-#adding cache funtions
+#cache services and recommenders
 @st.cache_resource
 def get_catalog_service(songs):
     return CatalogService(songs)
@@ -41,9 +41,8 @@ def get_collaborative_recommender():
     )
 
 @st.cache_resource
-def get_hybrid_recommender(recommender,collaborative):
-
-    return HybridRecommender(recommender,collaborative)
+def get_hybrid_recommender(_recommender,_collaborative):
+    return HybridRecommender(_recommender,_collaborative)
 
 @st.cache_data
 def load_spotify_dataset():
@@ -62,9 +61,11 @@ def load_spotify_dataset():
 def get_content_song_options(_catalog):
     return _catalog.available_songs()
 
+@st.cache_resource
 def get_spotify_service():
     return SpotifyService()
 
+@st.cache_resource
 def get_matching_service():
     return MatchingService()
 
@@ -143,14 +144,15 @@ def display_recommendations(recommendations,songs,score_label="Recommendation Sc
                 if pd.notna(duration):
                     st.write(f"Duration: {format_duration(duration)}")
              
-            if recommender_type is not None:
-                if recommender_type != "collaborative":
-                    match = songs.loc[songs["id"] == row["id"]]
+            if recommender_type == "collaborative":
+                display_xai(selected_song,None,recommender_type)
 
-                    if not match.empty:
-                        recommended_song = match.iloc[0]
+            elif recommender_type is not None:
+                match = songs.loc[songs["id"] == row["id"]]
 
-                        display_xai(selected_song,recommended_song,recommender_type)
+                if not match.empty:
+                    recommended_song = match.iloc[0]
+                    display_xai(selected_song,recommended_song,recommender_type)
 
 def render_content_search(search,spotify,matching,):
     """
@@ -206,7 +208,7 @@ def render_content_search(search,spotify,matching,):
 #         else:
 #             display_recommendations(recommendations,songs,"Collaborative Score",recommender_type="collaborative")
 
-def render_collaborative_search(collaborative, catalog,songs):
+def render_collaborative_search(collaborative, catalog):
     """
     Handles song search and Collaborative recommendation
     availability.
@@ -419,19 +421,6 @@ def spotify_fallback(query, search, spotify, matching):
         candidates = search.get_candidates(spotify_track["name"],
                                     spotify_track["artist"],)
 
-        # Debug
-        # with st.expander("Candidate Songs"):
-        #     st.dataframe(
-        #         candidates[
-        #             [
-        #                 "name",
-        #                 "artists",
-        #                 "year",
-        #             ]
-        #         ]
-        #     )
-
-
         # Stage 2
         matches = matching.find_best_match(spotify_track,candidates)
 
@@ -505,7 +494,6 @@ def spotify_fallback(query, search, spotify, matching):
         return matched_song["name"]
 
 
-   
 # Page Configuration
 st.set_page_config(
     page_title="Music Recommendation System",
@@ -515,10 +503,6 @@ st.set_page_config(
 # Store the latest recommendations
 if "last_recommendations" not in st.session_state:
     st.session_state["last_recommendations"] = None
-
-# Sidebar
-# st.sidebar.title("Navigation")
-# st.sidebar.success("Hybrid Music Recommendation System")
 
 # Title
 st.title("Music Recommendation System with GenAI & XAI")
@@ -555,7 +539,8 @@ popularity = get_popularity_recommender(songs)
 
 collaborative = get_collaborative_recommender()
 
-hybrid = HybridRecommender(recommender,collaborative)
+hybrid = get_hybrid_recommender(_recommender=recommender,
+                                _collaborative=collaborative)
 
 # Dataset Statistics
 st.subheader("📊 Dataset Statistics")
@@ -636,9 +621,8 @@ with tab3:
 
     render_collaborative_search(
         collaborative=collaborative,
-        catalog=catalog,
-        songs=songs
-    )
+        catalog=catalog
+        )
 
 # with tab4:
 
@@ -800,71 +784,3 @@ with tab5:
                 RecommendationCharts.recommendation_scores(recommendations),
                 use_container_width=True
             )   
-
-
-    # st.subheader("📈 Recommendation Analytics")
-
-    # st.write("Chart 1")
-    # st.altair_chart(
-    #     RecommendationCharts.artist_distribution(recommendations),
-    #     use_container_width=True
-    # )
-
-    # st.write("Chart 2")
-    # st.altair_chart(
-    #     RecommendationCharts.year_distribution(recommendations),
-    #     use_container_width=True
-    # )
-
-    # st.write("Chart 3")
-    # st.altair_chart(
-    #     RecommendationCharts.popularity_distribution(recommendations),
-    #     use_container_width=True
-    # )
-
-    # st.write("Chart 4")
-    # st.altair_chart(
-    #     RecommendationCharts.recommendation_scores(recommendations),
-    #     use_container_width=True
-    # )
-    # Dataset Preview
-# st.subheader("🎼 Dataset Preview")
-# st.dataframe(
-#     songs.head(15),
-#     use_container_width=True
-# )
-# st.markdown("---")
-
-# Correlation Matrix
-# st.subheader("📈 Audio Feature Correlation")
-# st.dataframe(
-#     processor.correlation_matrix(),
-#     use_container_width=True
-# )
-# st.markdown("---")
-
-# Missing Values
-# st.subheader("🧹 Missing Values")
-# st.dataframe(
-#     processor.missing_values(),
-#     use_container_width=True
-# )
-
-# st.markdown("---")
-# st.header("🧪 Collaborative Dataset Preview")
-
-# manager = (
-#     DataManager()
-#     .load_triplets("datasets/triplets_file.csv")
-#     .load_song_data("datasets/song_data.csv")
-#     .merge()
-# )
-
-# merged = manager.get_dataset()
-
-# st.write("Merged Dataset Shape:", merged.shape)
-
-# st.dataframe(
-#     merged.head(10),
-#     use_container_width=True
-# )

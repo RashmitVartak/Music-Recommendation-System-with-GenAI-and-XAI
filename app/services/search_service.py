@@ -1,6 +1,4 @@
 """Responsible for search local dataset"""
-from turtle import st, title
-
 import pandas as pd
 
 class SearchService:
@@ -77,9 +75,11 @@ class SearchService:
         options = []
         for _, row in df.iterrows():
             year = row["year"]
-            if pd.isna(year): year = "Unknown"
+            if pd.isna(year): 
+                year = "Unknown"
 
-            else: year = int(year)
+            else: 
+                year = int(year)
 
             options.append(f"{row['name']} — {row['artists']} ({year})")
 
@@ -108,10 +108,10 @@ class SearchService:
         mask = pd.Series(False, index=self.songs.index)
 
         for token in title_tokens:
-            mask |= self.songs["_name_lower"].str.contains(token,na=False,regex=False,case=False)
+            mask |= self.songs["_name_lower"].str.contains(token,na=False,regex=False)
 
         for token in artist_tokens:
-            mask |= self.songs["_artist_lower"].str.contains(token,na=False,regex=False,case=False)
+            mask |= self.songs["_artist_lower"].str.contains(token,na=False,regex=False)
 
         candidates = self.songs[mask]
 

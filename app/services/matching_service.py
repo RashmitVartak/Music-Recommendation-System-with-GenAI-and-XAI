@@ -7,9 +7,6 @@ class MatchingService:
     Maps a Spotify song to the closest song in the local merged dataset.
     """
 
-    def __init__(self):
-        pass
-
     MIN_MATCH_SCORE = 0.75
 
     @staticmethod
@@ -28,37 +25,47 @@ class MatchingService:
         try:
             local_year = int(local_year)
             spotify_year = int(spotify_year)
+
         except Exception:
             return 0
 
         diff = abs(local_year - spotify_year)
 
-        if diff == 0: return 1
+        if diff == 0: 
+            return 1
 
-        if diff <= 1: return 0.8
+        if diff <= 1: 
+            return 0.8
 
-        if diff <= 2: return 0.6
+        if diff <= 2: 
+            return 0.6
 
-        if diff <= 5: return 0.3
+        if diff <= 5: 
+            return 0.3
 
         return 0
 
     def find_best_match(self,spotify_track: dict,candidates: pd.DataFrame,top_k: int = 5,) -> pd.DataFrame:
 
-        spotify_title = spotify_track["name"]
-        spotify_artist = spotify_track["artist"]
+        spotify_title = spotify_track["name"].lower()
+        spotify_artist = spotify_track["artist"].lower()
         spotify_release = spotify_track.get("release_date")
         spotify_year = None
 
         if spotify_release:
-            spotify_year = int(spotify_release[:4])
+            try:
+                spotify_year = int(spotify_release[:4])
+
+            except (ValueError,TypeError):
+                spotify_year = None
 
         scores = []
 
-        for idx, row in candidates.iterrows():
-            title_score = self.similarity(spotify_title,row["name"])
-            artist_score = self.similarity(spotify_artist,row["artists"])
-            release_score = self.year_score(row["year"],spotify_year,)
+        for row in candidates.itertuples(index=True):
+
+            title_score = self.similarity(spotify_title,row.name)
+            artist_score = self.similarity(spotify_artist,row.artists)
+            release_score = self.year_score(row.year,spotify_year)
 
             final_score = (
                 0.50 * title_score +
@@ -66,7 +73,10 @@ class MatchingService:
                 0.10 * release_score
             )
 
-            scores.append({"row_index": idx, "matching_score": final_score})
+            scores.append({
+                "row_index": row.Index,
+                "matching_score": final_score
+            })
 
         score_df = pd.DataFrame(scores)
 
