@@ -497,3 +497,40 @@ However , because the collaborative interaction dataset has much lower coverage 
 
 In recommend()
 "Because my collaborative dataset only covers a small subset of the content catalog, I added an availability check before invoking collaborative recommendation. This prevents unnecessary collaborative computation for songs that cannot produce collaborative recommendations, while retaining the full hybrid pipeline for songs with interaction data."
+
+===========================================================================================================================
+Evaluation
+- Collaborative Recommender
+"I evaluated the song-to-song collaborative model using held-out user listening histories and ranking metrics such as Precision@K, Recall@K, Hit Rate@K, and NDCG@K."
+
+K	Precision	Recall	        Hit Rate	NDCG
+5	0.1128	        0.0384	        0.2860	        0.1212
+10	0.0974	        0.0589	        0.3820	        0.1087
+20	0.0739	        0.0840	        0.4740	        0.0936
+What this tells us?
+        -Precision decreases as K increases → expected because we're recommending more songs.
+        -Recall increases → we're recovering more of the user's listening history.
+        -Hit Rate increases significantly: 28.6% → 47.4%.
+        -NDCG is highest at K=5, meaning relevant recommendations tend to appear higher in the shorter list.
+
+-Content Based Recommender
+
+K	Similarity@K	Diversity@K	Coverage@K
+5	 0.8354	          0.2965	0.79%
+10	 0.8376	          0.2876	1.58%
+20	 0.8353	          0.2903	3.14%
+Content-based recommendation produces highly similar recommendations but has relatively concentrated catalog coverage, while Collaborative recommendation captures behavioral overlap but has lower ranking metrics under our song-to-song evaluation setup.
+
+And this is exactly why Hybrid is worth evaluating next.
+
+-Hybrid Recommender
+Hybrid weight tuning results
+
+For our practical K=10:
+Content	Collaborative	Similarity	Diversity	Coverage
+80%	    20%	        0.8376	        0.2876	        1.58%
+60%	    40%	        0.8376	        0.2876	        1.58%
+50%	    50%	        0.8369	        0.2888	        1.58%
+40%	    60%	        0.8343	        0.2926	        1.58%
+20%	    80%	        0.8251	        0.3002	        1.58% 
+

@@ -51,7 +51,7 @@ class HybridRecommender:
 
         song_id=self.collaborative.get_song_id(song_name)
         if (song_id is None 
-            or not self.self.collaborative.has_interactions(song_id)):
+            or not self.collaborative.has_interactions(song_id)):
             content["source"]="Hybrid"
 
             return content.head(top_n)
@@ -108,6 +108,8 @@ class HybridRecommender:
 
         hybrid = hybrid.sort_values("score",ascending=False)
 
+        hybrid["source"] = "Hybrid"
+        
         return hybrid[
                 [
                     "id",

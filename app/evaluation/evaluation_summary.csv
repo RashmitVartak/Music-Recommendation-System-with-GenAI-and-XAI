@@ -1,0 +1,10 @@
+Model,K,Precision,Recall,Hit Rate,NDCG,Similarity,Diversity,Coverage
+Collaborative,5,0.1128,0.0384,0.286,0.1212,,,
+Collaborative,10,0.0974,0.0589,0.382,0.1087,,,
+Collaborative,20,0.0739,0.084,0.474,0.0936,,,
+Content-Based,5,,,,,0.8354,0.2965,0.0079
+Content-Based,10,,,,,0.8376,0.2876,0.0158
+Content-Based,20,,,,,0.8353,0.2903,0.0314
+Hybrid (60/40),5,,,,,0.8357,0.2961,0.0079
+Hybrid (60/40),10,,,,,0.8376,0.2876,0.0158
+Hybrid (60/40),20,,,,,0.8353,0.2904,0.0314
